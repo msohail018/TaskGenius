@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import api from '../api';
 import { SparklesIcon, PlusCircleIcon, PencilSquareIcon, BoltIcon, CalendarDaysIcon } from '@heroicons/react/24/solid';
 
-const NewTaskForm = ({ onTaskCreated, onClose }) => {
+const NewTaskForm = ({ onTaskCreated, onClose, tasks = [] }) => {
   const [mode, setMode] = useState('magic'); // 'magic' or 'manual'
   
   // Magic Mode State
@@ -56,6 +56,15 @@ const NewTaskForm = ({ onTaskCreated, onClose }) => {
           payload = { mode: 'magic', text: magicText };
       } else {
           if (!title.trim()) return;
+
+          // Duplicate Check (Case-insensitive)
+          const isDuplicate = tasks.some(t => t.title.toLowerCase() === title.trim().toLowerCase());
+          if (isDuplicate) {
+              setErrorMsg("⚠️ A task with this name already exists!");
+              setLoading(false);
+              return;
+          }
+
           payload = { mode: 'manual', title, description, priority, dueDate };
       }
 

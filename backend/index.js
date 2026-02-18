@@ -8,14 +8,31 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true
+}));
 app.use(express.json());
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (reason, p) => {
+    console.error('UNHANDLED REJECTION:', reason);
+});
+
 // Connect to MongoDB
-console.log("Connecting to MongoDB at", process.env.MONGODB_URI);
-mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
+// Connect to MongoDB
+let mongoURI = process.env.MONGODB_URI;
+if (!mongoURI || !mongoURI.startsWith('mongodb')) {
+    console.warn("⚠️ Invalid MONGODB_URI detected. Falling back to local default.");
+    mongoURI = "mongodb://127.0.0.1:27017/taskgen"; 
+}
+console.log("Connecting to MongoDB at", mongoURI);
+mongoose.connect(mongoURI, { serverSelectionTimeoutMS: 5000 })
   .then(() => console.log('MongoDB connected successfully'))
   .catch((err) => {
       console.error('MongoDB Connection Error:', err.message);
@@ -26,11 +43,12 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Multi-Model Fallback Helper
 async function generateWithFallback(prompt, outputJson = false) {
-    const models = ["gemini-3-flash-preview", "gemini-1.5-flash", "gemini-2.0-flash"];
-    
+    // The "Triple-Threat" Fallback Array (Cutting Edge -> Speed -> Stability)
+    const models = ["gemini-1.5-flash"]; 
+
     for (const modelName of models) {
         try {
-            console.log(`Attempting with model: ${modelName}`);
+            console.log(`🤖 Testing Model: ${modelName}...`);
             const modelConfig = { model: modelName };
             if (outputJson) {
                 modelConfig.generationConfig = { responseMimeType: "application/json" };
@@ -38,23 +56,35 @@ async function generateWithFallback(prompt, outputJson = false) {
 
             const model = genAI.getGenerativeModel(modelConfig);
             const result = await model.generateContent(prompt);
-            const text = result.response.text();
+            const response = await result.response;
+            const text = response.text();
+            
+            if (!text) throw new Error("Empty response from AI");
 
+            console.log(`✅ Success with ${modelName}`);
             return { text, modelUsed: modelName };
         } catch (error) {
-            console.warn(`Model ${modelName} failed:`, error.message);
+            let status = "Unknown";
+            if (error.status) status = error.status;
+            else if (error.response?.status) status = error.response.status;
+            else if (error.message.includes('429')) status = "429 (Quota)";
+            else if (error.message.includes('503')) status = "503 (Overloaded)";
             
-            // If it's NOT a quota error (429) or Service Unavailable (503), throw immediately (e.g. Bad Request)
-            const isRetryable = error.message.includes('429') || error.message.includes('503') || error.message.includes('500');
+            console.warn(`⚠️ Model ${modelName} Failed | Status: ${status} | Reason: ${error.message}`);
             
-            if (!isRetryable) {
-                throw error; 
+            if (String(status).includes('429')) {
+                console.error(`🛑 QUOTA HIT for ${modelName}. Waiting longer...`);
+                await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s instead of 1s
             }
-            // If it was the last model, throw the error
+            
+            // If it was the last model, throw the error to trigger offline mode
             if (modelName === models[models.length - 1]) {
-                 throw new Error("All AI models exhausted. Please switch to Manual Mode.");
+                 console.error("❌ All AI models exhausted.");
+                 throw new Error("All AI models exhausted. Switching to Manual/Offline Mode.");
             }
-            // Otherwise loop continues to next model...
+            
+            // Wait 1s before retrying next model to be polite
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
     }
 }
@@ -145,6 +175,9 @@ app.post('/api/tasks', async (req, res) => {
   try {
     // 1. MANUAL MODE: Save directly
     if (mode === 'manual') {
+        if (!manualData.title || !manualData.title.trim()) {
+            return res.status(400).json({ error: "Task title is required." });
+        }
         const newTask = new Task({
             title: manualData.title,
             description: manualData.description,
@@ -162,6 +195,17 @@ app.post('/api/tasks', async (req, res) => {
     }
 
     // 2. MAGIC MODE: AI Inference
+    if (!text || !text.trim()) {
+        return res.status(400).json({ error: "Magic text prompt is required." });
+    }
+    
+    // Check API Key existence to prevent 500 from SDK
+    if (!process.env.GEMINI_API_KEY) {
+         console.warn("⚠️ No GEMINI_API_KEY found. Skipping AI.");
+         // Trigger Fallback logic directly via Error
+         throw new Error("Missing GEMINI_API_KEY"); 
+    }
+
     try {
       // Inject Literal Local System Date
       const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD (Local)
@@ -187,8 +231,18 @@ app.post('/api/tasks', async (req, res) => {
       `;
 
       // Use Fallback Generator
-      const { text: aiResponseText, modelUsed } = await generateWithFallback(prompt, true);
-      const analysis = JSON.parse(aiResponseText);
+      console.log("🤖 Genering Magic Task from:", text);
+      // Use FALSE for json mode to be deeper compatible with flash-1.5 
+      const { text: aiResponseText, modelUsed } = await generateWithFallback(prompt, false);
+      
+      let analysis;
+      try {
+          const cleanText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
+          analysis = JSON.parse(cleanText);
+      } catch (e) {
+          console.error("Magic Parsed Failed:", aiResponseText);
+          throw new Error("AI returned invalid JSON format. Try Manual Mode.");
+      }
       
       console.log(`Magic Mode Result (${modelUsed}):`, JSON.stringify(analysis, null, 2));
 
@@ -218,15 +272,34 @@ app.post('/api/tasks', async (req, res) => {
       return res.status(201).json(taskObj);
 
     } catch (aiError) {
-      console.error("Gemini Error (Magic Mode):", aiError.message);
-      if (aiError.message.includes('exhausted')) {
-          return res.status(429).json({ error: "All AI Models Busy. Please use Manual Mode." });
-      }
-      return res.status(500).json({ error: "AI Service Error. Please use Manual Mode.", details: aiError.message });
+      console.error("Gemini Magic Error:", aiError.message);
+      
+      // FALLBACK: Create a basic task if AI fails
+      console.log("⚠️ Magic AI failed. Creating raw task fallback.");
+      
+      const fallbackTask = new Task({
+          title: text.length > 50 ? text.substring(0, 50) + "..." : text,
+          description: `(AI Failed to parse) Original: ${text}`,
+          priority: 'Medium',
+          dueDate: new Date(), // Today
+          status: 'todo',
+          category: 'Inbox'
+      });
+      
+      await fallbackTask.save();
+      const taskObj = fallbackTask.toObject();
+      taskObj.urgencyScore = calculateUrgency(taskObj);
+      taskObj.modelUsed = "offline-fallback";
+      
+      // Return 201 Created (Success) even though AI failed
+      return res.status(201).json(taskObj);
     }
 
   } catch (error) {
-    console.error("Create task error:", error);
+    console.error('FULL ERROR:', error);
+    if (error.name === 'ValidationError') {
+        return res.status(400).json({ error: error.message });
+    }
     res.status(500).json({ error: 'Server error creating task' });
   }
 });
@@ -257,6 +330,7 @@ app.post('/api/tasks/:id/breakdown', async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
+    if (!task.title) return res.status(400).json({ error: 'Task title is missing.' });
     
     // Deadline-aware prompt
     const daysUntilDue = task.dueDate 
@@ -270,14 +344,31 @@ app.post('/api/tasks/:id/breakdown', async (req, res) => {
     const prompt = `
       Act as a specialized consultant. Break down this task: "${task.title}"
       CONTEXT: ${deadlineContext}
-      Limit: Generate 3-5 concise bullet points.
+      Limit: Generate max 3 concise bullet points.
       Return ONLY a JSON Array of strings.
       Example: ["Research requirements", "Draft outline", "Review", "Refine"]
     `;
 
     try {
-        const { text: aiResponseText, modelUsed } = await generateWithFallback(prompt, true);
-        const subTasks = JSON.parse(aiResponseText);
+        console.log(`🤖 Genering steps for: ${task.title}...`);
+        // Use FALSE for json mode to be deeper compatible with flash-1.5 
+        // We will manually clean the response if needed.
+        const { text: aiResponseText, modelUsed } = await generateWithFallback(prompt, false);
+        
+        console.log("AI Response Raw:", aiResponseText);
+
+        let subTasks = [];
+        try {
+            // Try cleaning markdown code blocks first
+            const cleanText = aiResponseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            subTasks = JSON.parse(cleanText);
+        } catch (e) {
+            console.warn("JSON Parse failed, attempting line split fallback...");
+            // Fallback: Split by newlines and remove bullets
+            subTasks = aiResponseText.split('\n')
+                .map(line => line.replace(/^[\d-.*•]\s*/, '').trim())
+                .filter(line => line.length > 3 && !line.startsWith('[') && !line.startsWith(']'));
+        }
 
         if (!Array.isArray(subTasks) || subTasks.length === 0) {
             throw new Error("AI returned invalid structure");
@@ -291,18 +382,41 @@ app.post('/api/tasks/:id/breakdown', async (req, res) => {
         taskObj.urgencyScore = calculateUrgency(taskObj);
         taskObj.modelUsed = modelUsed;
         
+        console.log(`✅ Breakdown Generated via ${modelUsed}`);
         res.json(taskObj);
 
     } catch (aiError) {
-        console.error("Gemini Generate/Parse Error:", aiError.message);
+        console.error("Gemini Breakdown Error:", aiError.message);
         
-        let errorMessage = "AI Service is busy. Please try again.";
-        if (aiError.message.includes('exhausted')) {
-            errorMessage = "All AI models are currently busy. Please try again in 60 seconds.";
+        // Check for Quota Limits (429)
+        const isQuotaError = aiError.message.includes('429') || aiError.message.includes('exhausted') || aiError.message.includes('quota');
+        
+        if (isQuotaError) {
+             console.warn("⚠️ Quota Exceeded. Switching to graceful offline mode.");
         }
-        
-        const status = aiError.message.includes('exhausted') ? 429 : 400;
-        res.status(status).json({ error: errorMessage });
+
+        // ULTIMATE FALLBACK: Generic Steps (Always succeed)
+        try {
+            console.log("⚠️ Switching to offline static breakdown.");
+            const staticSteps = [
+                `Plan initial approach for "${task.title}"`,
+                "Execute core requirements (Offline Mode)",
+                "Review and finalize"
+            ];
+            
+            task.subTasks = staticSteps;
+            await task.save();
+            
+            const taskObj = task.toObject();
+            taskObj.urgencyScore = calculateUrgency(taskObj);
+            taskObj.modelUsed = isQuotaError ? "offline-quota" : "offline-error";
+            
+            // Allow success (200) even on error, so UI updates
+            res.json(taskObj);
+        } catch (saveError) {
+             console.error("Critical: Failed to save fallback.", saveError);
+             res.status(500).json({ error: "System Error: Could not save task." });
+        }
     }
 
   } catch (error) {
@@ -368,38 +482,50 @@ app.get('/api/tasks/by-date', async (req, res) => {
 // Get Daily Game Plan (AI Summary)
 app.get('/api/daily-plan', async (req, res) => {
   try {
-    const tasks = await Task.find({ status: { $ne: 'done' } }); 
-    const highPriority = tasks.filter(t => t.priority === 'High');
+    const tasks = await Task.find({ status: { $ne: 'done' } }).sort({ urgencyScore: -1 }); 
     
-    let message = "Let's crush it today! Focus on your high priority items.";
+    // If no tasks, return early
+    if (tasks.length === 0) {
+       return res.json({ message: "No tasks pending. You have a clean slate for the day!" });
+    }
+
+    let message = "Loading your daily intelligence...";
     let modelUsed = null;
 
-    if (highPriority.length > 0) {
-        try {
-            const tasksSummary = highPriority.map(t => `- ${t.title}`).join('\n');
-            const userPrompt = `
-              You are a motivational productivity coach.
-              Generate a motivational greeting and a very brief summary of these high priority tasks for the day:
-              ${tasksSummary}
-              
-              Keep it short, punchy, and under 2 sentences.
-            `;
-            
-            // Use Fallback Generator
-            const result = await generateWithFallback(userPrompt, false);
-            message = result.text;
-            modelUsed = result.modelUsed;
+    try {
+        // Create a dense summary for the AI
+        const taskDigest = tasks.slice(0, 10).map(t => `- [${t.priority}] ${t.title}`).join('\n');
+        const remaining = tasks.length > 10 ? `...and ${tasks.length - 10} more.` : '';
+        
+        const userPrompt = `
+          You are an elite productivity executive assistant.
+          Analyze my tasks for today and give me a 1-2 sentence "Morning Briefing".
+          
+          Tasks:
+          ${taskDigest}
+          ${remaining}
+          
+          Goal: Summarize the day's main focus or theme. Be professional, concise, and motivating. Mention the most critical item if it exists.
+        `;
+        
+        // Use Fallback Generator
+        const result = await generateWithFallback(userPrompt, false);
+        message = result.text;
+        modelUsed = result.modelUsed;
+        console.log("✅ Daily Plan AI Success. Model:", modelUsed);
 
-        } catch (aiError) {
-            console.error("Gemini Error (Daily Plan):", aiError.message);
-            message = `You have ${highPriority.length} high priority tasks today. Let's get them done! (Offline Backup)`;
-        }
+    } catch (aiError) {
+        console.error("Gemini Error (Daily Plan):", aiError.message);
+        console.log("❌ Daily Plan AI Failed. Using offline fallback.");
+        // Fallback: Smart stats
+        const highPri = tasks.filter(t => t.priority === 'High' || t.priority === 'Critical Hit').length;
+        message = `You have ${tasks.length} tasks on deck today` + (highPri > 0 ? `, including ${highPri} priority items.` : '.');
     }
 
     res.json({ message, modelUsed });
   } catch (error) {
       console.error("Error generating daily plan:", error);
-      res.json({ message: "Welcome back! Ready to conquer your tasks?" });
+      res.json({ message: "Ready to conquer your tasks?" });
   }
 });
 
@@ -409,33 +535,40 @@ app.post('/api/analyze-today', async (req, res) => {
     const { tasks } = req.body;
     
     if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
-        return res.json({ message: "You're all clear for today! Enjoy your freedom or pull in some backlog tasks." });
+        return res.json({ message: "You're all clear for today! Enjoy your freedom." });
     }
 
-    // Limit to titles and priorities to save tokens/complexity
-    const taskList = tasks.map(t => `- [${t.priority}] ${t.title}: ${t.description || ''}`).join('\n');
+    // Prepare Context
+    const taskList = tasks.map(t => `- [${t.priority}] ${t.title} (Due: ${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'Today'})`).join('\n');
 
     const prompt = `
-      I have these tasks for today:
+      You are a strategic project manager. 
+      Review this list of tasks for today:
       ${taskList}
       
-      Based on their priorities and descriptions, give me a 2-sentence strategy on which one to start first and how to manage my energy. Keep it professional and motivating.
+      Give me a "Daily Execution Briefing" (max 2 sentences).
+      1. Summarize the workload intensity.
+      2. Direct me specifically on where to start for maximum impact.
     `;
 
     try {
-        const { text: strategy, modelUsed } = await generateWithFallback(prompt, false);
-        res.json({ message: strategy, modelUsed });
+        const { text: strategy, modelUsed: aiModel } = await generateWithFallback(prompt, false);
+        console.log("✅ Analyze Today AI Success. Model:", aiModel);
+        res.json({ message: strategy, modelUsed: aiModel });
 
     } catch (aiError) {
         console.error("Gemini Error (Analyze Today):", aiError.message);
+        console.log("❌ Analyze Today AI Failed. Using offline fallback.");
         if (aiError.message.includes('exhausted')) {
              return res.status(429).json({ error: "AI is resting (Quota). Try again in a minute." });
         }
-        // Fallback strategy if AI fails
-        const highPri = tasks.filter(t => t.priority === 'High' || t.priority === 'Critical Hit');
-        const fallback = highPri.length > 0 
-            ? `Start with "${highPri[0].title}" to get a big win early. Keep your momentum going!` 
-            : `Pick the task that excites you most and dive in. You've got this!`;
+        
+        // Smart Fallback
+        const critical = tasks.find(t => t.priority === 'Critical Hit');
+        const high = tasks.find(t => t.priority === 'High');
+        const startTask = critical || high || tasks[0];
+        
+        const fallback = `Focus is key. Start with "${startTask.title}" to set the tempo for the rest of your ${tasks.length} tasks.`;
         
         res.json({ message: fallback });
     }

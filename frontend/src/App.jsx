@@ -132,6 +132,48 @@ function App() {
     </button>
   );
 
+  // Helper: Check if there are ACTUAL tasks for today to enable the button
+  const hasTasksForToday = () => {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      
+      return tasks.some(t => {
+          if (!t.dueDate || t.status !== 'todo') return false; // Strict: Only TODO tasks
+          const due = new Date(t.dueDate);
+          const userTimezoneOffset = due.getTimezoneOffset() * 60000;
+          const localDue = new Date(due.getTime() + userTimezoneOffset);
+          return localDue >= startOfToday && localDue <= endOfToday;
+      });
+  };
+  
+  const canAnalyze = hasTasksForToday();
+  
+  const todoTasks = tasks.filter(t => t.status === 'todo');
+  const doingTasks = tasks.filter(t => t.status === 'in-progress');
+  
+  // Calculate Urgency Buckets (Only for ToDo)
+  const urgencyStats = todoTasks.reduce((acc, t) => {
+      const score = t.urgencyScore || 0;
+      if (score >= 8) acc.critical++;       // Red: Today/Overdue
+      else if (score >= 5) acc.high++;      // Orange: Tomorrow/High Priority
+      else acc.normal++;                    // Green: Everything else
+      return acc;
+  }, { critical: 0, high: 0, normal: 0 });
+
+  // Dynamic Offline Greeting Logic
+  let dynamicGreeting = "";
+  if (todoTasks.length === 0 && doingTasks.length === 0) {
+      dynamicGreeting = "🎉 You're all caught up! No pending tasks. Enjoy your freedom!";
+  } else if (todoTasks.length === 0 && doingTasks.length > 0) {
+      dynamicGreeting = `🚀 You have ${doingTasks.length} tasks in progress. Focus and finish them strong!`;
+  } else {
+      // Has ToDo Tasks
+      dynamicGreeting = urgencyStats.critical > 0 
+      ? `🚨 Action Required: You have ${urgencyStats.critical} critical tasks that need attention right now.` 
+      : `You have ${urgencyStats.high} high priority tasks upcoming. Keep the momentum going!`;
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-gray-900 overflow-x-hidden">
       {/* Header */}
@@ -158,9 +200,9 @@ function App() {
               {/* Analyze Today Button (Desktop & Mobile) */}
               <button
                 onClick={handleAnalyzeToday}
-                disabled={analyzing || countdown > 0}
+                disabled={analyzing || countdown > 0 || !canAnalyze}
                 className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-all ${
-                    countdown > 0 
+                    countdown > 0 || !canAnalyze
                     ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
                     : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm'
                 }`}
@@ -172,10 +214,10 @@ function App() {
               {/* New Task Button */}
               <button 
                 onClick={() => setShowForm(!showForm)}
-                className="hidden md:flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg transform active:scale-95"
+                className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg transform active:scale-95"
               >
                 <PlusIcon className="h-5 w-5" />
-                New Task
+                <span className="hidden md:inline">New Task</span>
               </button>
           </div>
         </div>
@@ -194,9 +236,9 @@ function App() {
         <div className="md:hidden mb-6">
             <button
                 onClick={handleAnalyzeToday}
-                disabled={analyzing || countdown > 0}
+                disabled={analyzing || countdown > 0 || !canAnalyze}
                 className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border transition-all shadow-sm ${
-                    countdown > 0 
+                    countdown > 0 || !canAnalyze
                     ? 'bg-gray-100 text-gray-400 border-gray-200' 
                     : 'bg-white text-indigo-600 border-indigo-200 active:bg-indigo-50'
                 }`}
@@ -207,7 +249,7 @@ function App() {
         </div>
 
         {/* Daily Briefing / Analysis Box (AI) */}
-        {(analysisResult || dailyGreeting) && showStrategy && (
+        {showStrategy && (
              <div className={`mb-8 rounded-2xl p-6 md:p-8 text-white shadow-xl ring-1 ring-white/20 relative overflow-hidden transition-all animate-fade-in-down ${
                  analysisResult 
                  ? 'bg-gradient-to-br from-slate-800 to-slate-900 shadow-slate-300' 
@@ -216,28 +258,78 @@ function App() {
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
                 
-                {/* Close Button */}
+                {/* Close / Back Button */}
                 <button 
-                    onClick={() => setShowStrategy(false)}
-                    className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-all z-20"
-                    aria-label="Close Strategy"
+                    onClick={() => {
+                        if (analysisResult) setAnalysisResult(''); // Revert to offline
+                        else setShowStrategy(false); // Close box
+                    }}
+                    className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-all z-20 group"
+                    aria-label={analysisResult ? "Back to Daily Briefing" : "Close Strategy"}
                 >
-                    <XMarkIcon className="w-5 h-5" />
+                    {analysisResult ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                        </svg>
+                    ) : (
+                        <XMarkIcon className="w-5 h-5" />
+                    )}
                 </button>
 
-                <div className="relative z-10 flex flex-col md:flex-row gap-4 items-start md:items-center">
-                    <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                        <SparklesIcon className={`h-8 w-8 ${analysisResult ? 'text-emerald-300' : 'text-yellow-300'}`} />
+                <div className="relative z-10 flex flex-col md:flex-row gap-6 justify-between items-center">
+                    {/* Left Side: Icon & Text */}
+                    <div className="flex gap-4 items-start flex-1">
+                        <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm shrink-0">
+                            <SparklesIcon className={`h-8 w-8 ${analysisResult ? 'text-emerald-300' : 'text-yellow-300'}`} />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl md:text-3xl font-bold mb-2 tracking-tight text-white flex items-center gap-2">
+                                {analysisResult ? "Your Today Strategy" : (
+                                    <>
+                                        {urgencyStats.critical > 0 && <span className="bg-red-500 text-white text-sm font-black px-2 py-1 rounded-lg uppercase tracking-wider">URGENT</span>}
+                                        <span>Daily Briefing</span>
+                                    </>
+                                )}
+                            </h2>
+                            <p className="opacity-95 leading-relaxed text-indigo-50 max-w-2xl text-base md:text-lg font-light">
+                                {analysisResult || dynamicGreeting}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-2xl md:text-3xl font-bold mb-2 tracking-tight text-white">
-                            {analysisResult ? "Your Today Strategy" : "✨ Your Daily Briefing"}
-                        </h2>
-                        <p className="opacity-95 leading-relaxed text-indigo-50 max-w-2xl text-base md:text-lg font-light">
-                            {analysisResult || dailyGreeting}
-                        </p>
+
+                    {/* Right Side: Urgency Bubbles (Always Visible) */}
+                    <div className="flex items-center gap-3 shrink-0">
+                        {/* Critical Bubble */}
+                        {urgencyStats.critical > 0 && (
+                            <div className="flex flex-col items-center gap-1 group">
+                                <div className="w-12 h-12 rounded-full bg-rose-500 border-2 border-rose-300 shadow-lg flex items-center justify-center text-xl font-black text-white transform group-hover:scale-110 transition-transform">
+                                    {urgencyStats.critical}
+                                </div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-rose-200">Critical</span>
+                            </div>
+                        )}
+
+                        {/* High Bubble */}
+                        {urgencyStats.high > 0 && (
+                            <div className="flex flex-col items-center gap-1 group">
+                                <div className="w-12 h-12 rounded-full bg-amber-500 border-2 border-amber-300 shadow-lg flex items-center justify-center text-xl font-black text-white transform group-hover:scale-110 transition-transform">
+                                    {urgencyStats.high}
+                                </div>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200">High</span>
+                            </div>
+                        )}
+
+                             {/* Normal Bubble */}
+                             {urgencyStats.normal > 0 && (
+                                <div className="flex flex-col items-center gap-1 group">
+                                    <div className="w-12 h-12 rounded-full bg-emerald-500 border-2 border-emerald-300 shadow-lg flex items-center justify-center text-xl font-black text-white transform group-hover:scale-110 transition-transform">
+                                        {urgencyStats.normal}
+                                    </div>
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-200">Normal</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
              </div>
         )}
 
@@ -247,11 +339,11 @@ function App() {
                 <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 relative overflow-hidden">
                     <button 
                         onClick={() => setShowForm(false)} 
-                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-50 bg-white/50 rounded-full p-1"
                     >
-                        ✕
+                        <XMarkIcon className="h-6 w-6" />
                     </button>
-                    <NewTaskForm onTaskCreated={handleTaskCreated} onClose={() => setShowForm(false)} />
+                    <NewTaskForm onTaskCreated={handleTaskCreated} onClose={() => setShowForm(false)} tasks={tasks} />
                 </div>
             </div>
         )}

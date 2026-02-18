@@ -113,7 +113,8 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
         if (error.response?.status === 429) {
              alert("AI is resting. Please try again in 30 seconds.");
         } else {
-             alert("AI Service Error. Please try again.");
+             const msg = error.response?.data?.error || "AI Service Error. Please try again.";
+             alert(msg);
         }
         setLoadingAI(false);
     }
