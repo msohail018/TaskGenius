@@ -6,13 +6,18 @@ import {
     TrashIcon, 
     PlayIcon, 
     CheckIcon,
-    SparklesIcon
+    SparklesIcon,
+    ChevronDownIcon,
+    ChevronUpIcon
 } from '@heroicons/react/24/outline';
 import api from '../api';
 
 const TaskCard = ({ task, onUpdate, onDelete }) => {
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiProgress, setAiProgress] = useState(0);
+
+  /* New: Collapsible State */
+  const [isStepsExpanded, setIsStepsExpanded] = useState(false);
 
   // Status Colors
   const statusColors = {
@@ -166,18 +171,32 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
 
       {/* Subtasks / AI Checklist */}
       {task.subTasks && task.subTasks.length > 0 ? (
-        <div className="relative z-10 mb-4 pl-4 border-l-[3px] border-indigo-500 bg-indigo-50/50 py-3 pr-2 rounded-r-xl">
-            <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                <SparklesIcon className="h-3 w-3" /> AI Game Plan
-            </p>
-            <div className="space-y-2">
-                {task.subTasks.map((step, idx) => (
-                    <div key={idx} className="flex items-start gap-2.5 group/item cursor-pointer">
-                        <input type="checkbox" className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
-                        <span className="text-xs text-gray-700 font-medium leading-snug group-hover/item:text-indigo-700 transition-colors">{step}</span>
-                    </div>
-                ))}
-            </div>
+        <div className="relative z-10 mb-4 bg-indigo-50/50 rounded-xl overflow-hidden border border-indigo-100 transition-all">
+            <button 
+                onClick={() => setIsStepsExpanded(!isStepsExpanded)}
+                className="w-full flex items-center justify-between p-3 text-left hover:bg-indigo-50/80 transition-colors"
+            >
+                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest flex items-center gap-2">
+                    <SparklesIcon className="h-4 w-4" /> 
+                    AI Game Plan ({task.subTasks.length})
+                </p>
+                {isStepsExpanded ? (
+                    <ChevronUpIcon className="h-4 w-4 text-indigo-400" />
+                ) : (
+                    <ChevronDownIcon className="h-4 w-4 text-indigo-400" />
+                )}
+            </button>
+            
+            {isStepsExpanded && (
+                <div className="px-4 pb-4 animate-fade-in space-y-2.5 border-t border-indigo-100/50 pt-3">
+                    {task.subTasks.map((step, idx) => (
+                        <div key={idx} className="flex items-start gap-3 group/item cursor-pointer">
+                            <input type="checkbox" className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                            <span className="text-xs text-gray-700 font-medium leading-snug group-hover/item:text-indigo-700 transition-colors">{step}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
       ) : (
         <div className="mt-3 relative z-10">

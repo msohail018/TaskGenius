@@ -3,7 +3,7 @@ import api from './api';
 import Column from './components/Column';
 import NewTaskForm from './components/NewTaskForm';
 import TaskCard from './components/TaskCard';
-import { PlusIcon, SunIcon, ListBulletIcon, CheckCircleIcon, ClockIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, SunIcon, ListBulletIcon, CheckCircleIcon, ClockIcon, SparklesIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -13,6 +13,7 @@ function App() {
   const [showForm, setShowForm] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const [showStrategy, setShowStrategy] = useState(true);
   
   // Unified Tabs for Mobile: 'todo', 'in-progress', 'done'
   const [activeTab, setActiveTab] = useState('todo'); 
@@ -206,7 +207,7 @@ function App() {
         </div>
 
         {/* Daily Briefing / Analysis Box (AI) */}
-        {(analysisResult || dailyGreeting) && (
+        {(analysisResult || dailyGreeting) && showStrategy && (
              <div className={`mb-8 rounded-2xl p-6 md:p-8 text-white shadow-xl ring-1 ring-white/20 relative overflow-hidden transition-all animate-fade-in-down ${
                  analysisResult 
                  ? 'bg-gradient-to-br from-slate-800 to-slate-900 shadow-slate-300' 
@@ -215,6 +216,15 @@ function App() {
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
                 
+                {/* Close Button */}
+                <button 
+                    onClick={() => setShowStrategy(false)}
+                    className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-all z-20"
+                    aria-label="Close Strategy"
+                >
+                    <XMarkIcon className="w-5 h-5" />
+                </button>
+
                 <div className="relative z-10 flex flex-col md:flex-row gap-4 items-start md:items-center">
                     <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
                         <SparklesIcon className={`h-8 w-8 ${analysisResult ? 'text-emerald-300' : 'text-yellow-300'}`} />
