@@ -22,8 +22,42 @@ mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
   });
 
 // Initialize Gemini
-// Ensure you have GEMINI_API_KEY in your .env file
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Multi-Model Fallback Helper
+async function generateWithFallback(prompt, outputJson = false) {
+    const models = ["gemini-3-flash-preview", "gemini-1.5-flash", "gemini-2.0-flash"];
+    
+    for (const modelName of models) {
+        try {
+            console.log(`Attempting with model: ${modelName}`);
+            const modelConfig = { model: modelName };
+            if (outputJson) {
+                modelConfig.generationConfig = { responseMimeType: "application/json" };
+            }
+
+            const model = genAI.getGenerativeModel(modelConfig);
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+
+            return { text, modelUsed: modelName };
+        } catch (error) {
+            console.warn(`Model ${modelName} failed:`, error.message);
+            
+            // If it's NOT a quota error (429) or Service Unavailable (503), throw immediately (e.g. Bad Request)
+            const isRetryable = error.message.includes('429') || error.message.includes('503') || error.message.includes('500');
+            
+            if (!isRetryable) {
+                throw error; 
+            }
+            // If it was the last model, throw the error
+            if (modelName === models[models.length - 1]) {
+                 throw new Error("All AI models exhausted. Please switch to Manual Mode.");
+            }
+            // Otherwise loop continues to next model...
+        }
+    }
+}
 
 // Routes
 
@@ -129,11 +163,6 @@ app.post('/api/tasks', async (req, res) => {
 
     // 2. MAGIC MODE: AI Inference
     try {
-      const model = genAI.getGenerativeModel({ 
-          model: "gemini-3-flash-preview", 
-          generationConfig: { responseMimeType: "application/json" }
-      });
-      
       // Inject Literal Local System Date
       const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD (Local)
       
@@ -157,10 +186,11 @@ app.post('/api/tasks', async (req, res) => {
         - subTasks: (Array of 3-5 strings)
       `;
 
-      const result = await model.generateContent(prompt);
-      const analysis = JSON.parse(result.response.text());
+      // Use Fallback Generator
+      const { text: aiResponseText, modelUsed } = await generateWithFallback(prompt, true);
+      const analysis = JSON.parse(aiResponseText);
       
-      console.log("Magic Mode Result:", JSON.stringify(analysis, null, 2));
+      console.log(`Magic Mode Result (${modelUsed}):`, JSON.stringify(analysis, null, 2));
 
       // 3. Date Parsing - Handle AI's simplified date
       let dueDate = null;
@@ -183,14 +213,14 @@ app.post('/api/tasks', async (req, res) => {
       await newTask.save();
       const taskObj = newTask.toObject();
       taskObj.urgencyScore = calculateUrgency(taskObj);
+      taskObj.modelUsed = modelUsed; // Pass back model info
       
       return res.status(201).json(taskObj);
 
     } catch (aiError) {
       console.error("Gemini Error (Magic Mode):", aiError.message);
-      // NO FALLBACKS. Return the Real Error.
-      if (aiError.message.includes('429')) {
-          return res.status(429).json({ error: "AI Quota Exceeded. Please switch to Manual Mode." });
+      if (aiError.message.includes('exhausted')) {
+          return res.status(429).json({ error: "All AI Models Busy. Please use Manual Mode." });
       }
       return res.status(500).json({ error: "AI Service Error. Please use Manual Mode.", details: aiError.message });
     }
@@ -227,12 +257,6 @@ app.post('/api/tasks/:id/breakdown', async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
     if (!task) return res.status(404).json({ error: 'Task not found' });
-
-    // Use Gemini 2.5 Flash as requested
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.5-flash", 
-        generationConfig: { responseMimeType: "application/json" } 
-    });
     
     // Deadline-aware prompt
     const daysUntilDue = task.dueDate 
@@ -252,8 +276,8 @@ app.post('/api/tasks/:id/breakdown', async (req, res) => {
     `;
 
     try {
-        const result = await model.generateContent(prompt);
-        const subTasks = JSON.parse(result.response.text());
+        const { text: aiResponseText, modelUsed } = await generateWithFallback(prompt, true);
+        const subTasks = JSON.parse(aiResponseText);
 
         if (!Array.isArray(subTasks) || subTasks.length === 0) {
             throw new Error("AI returned invalid structure");
@@ -265,6 +289,7 @@ app.post('/api/tasks/:id/breakdown', async (req, res) => {
         // Return with Urgency
         const taskObj = task.toObject();
         taskObj.urgencyScore = calculateUrgency(taskObj);
+        taskObj.modelUsed = modelUsed;
         
         res.json(taskObj);
 
@@ -272,14 +297,11 @@ app.post('/api/tasks/:id/breakdown', async (req, res) => {
         console.error("Gemini Generate/Parse Error:", aiError.message);
         
         let errorMessage = "AI Service is busy. Please try again.";
-        if (aiError.message.includes('429')) {
-            errorMessage = "AI Quota Exceeded. Please try again in 60 seconds.";
-        } else if (aiError.message.includes('500') || aiError.message.includes('503')) {
-            errorMessage = "AI Service Temporary Error. Please retry.";
+        if (aiError.message.includes('exhausted')) {
+            errorMessage = "All AI models are currently busy. Please try again in 60 seconds.";
         }
-
-        // Return 429 if it's a quota issue, otherwise 400/500
-        const status = aiError.message.includes('429') ? 429 : 400;
+        
+        const status = aiError.message.includes('exhausted') ? 429 : 400;
         res.status(status).json({ error: errorMessage });
     }
 
@@ -350,7 +372,8 @@ app.get('/api/daily-plan', async (req, res) => {
     const highPriority = tasks.filter(t => t.priority === 'High');
     
     let message = "Let's crush it today! Focus on your high priority items.";
-    
+    let modelUsed = null;
+
     if (highPriority.length > 0) {
         try {
             const tasksSummary = highPriority.map(t => `- ${t.title}`).join('\n');
@@ -361,21 +384,65 @@ app.get('/api/daily-plan', async (req, res) => {
               
               Keep it short, punchy, and under 2 sentences.
             `;
+            
+            // Use Fallback Generator
+            const result = await generateWithFallback(userPrompt, false);
+            message = result.text;
+            modelUsed = result.modelUsed;
 
-            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-            const result = await model.generateContent(userPrompt);
-            message = result.response.text();
         } catch (aiError) {
             console.error("Gemini Error (Daily Plan):", aiError.message);
-            message = `You have ${highPriority.length} high priority tasks today. Let's get them done!`;
+            message = `You have ${highPriority.length} high priority tasks today. Let's get them done! (Offline Backup)`;
         }
     }
 
-    res.json({ message });
+    res.json({ message, modelUsed });
   } catch (error) {
       console.error("Error generating daily plan:", error);
-      // Return default message instead of 500
       res.json({ message: "Welcome back! Ready to conquer your tasks?" });
+  }
+});
+
+// Analyze Today's Work (Specific Strategy)
+app.post('/api/analyze-today', async (req, res) => {
+  try {
+    const { tasks } = req.body;
+    
+    if (!tasks || !Array.isArray(tasks) || tasks.length === 0) {
+        return res.json({ message: "You're all clear for today! Enjoy your freedom or pull in some backlog tasks." });
+    }
+
+    // Limit to titles and priorities to save tokens/complexity
+    const taskList = tasks.map(t => `- [${t.priority}] ${t.title}: ${t.description || ''}`).join('\n');
+
+    const prompt = `
+      I have these tasks for today:
+      ${taskList}
+      
+      Based on their priorities and descriptions, give me a 2-sentence strategy on which one to start first and how to manage my energy. Keep it professional and motivating.
+    `;
+
+    try {
+        const { text: strategy, modelUsed } = await generateWithFallback(prompt, false);
+        res.json({ message: strategy, modelUsed });
+
+    } catch (aiError) {
+        console.error("Gemini Error (Analyze Today):", aiError.message);
+        if (aiError.message.includes('exhausted')) {
+             return res.status(429).json({ error: "AI is resting (Quota). Try again in a minute." });
+        }
+        // Fallback strategy if AI fails
+        const highPri = tasks.filter(t => t.priority === 'High' || t.priority === 'Critical Hit');
+        const fallback = highPri.length > 0 
+            ? `Start with "${highPri[0].title}" to get a big win early. Keep your momentum going!` 
+            : `Pick the task that excites you most and dive in. You've got this!`;
+        
+        res.json({ message: fallback });
+    }
+
+  } catch (error) {
+    console.error("Analysis Error:", error);
+    res.status(500).json({ error: "Failed to analyze tasks." });
   }
 });
 

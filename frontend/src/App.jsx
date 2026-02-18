@@ -9,7 +9,10 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dailyGreeting, setDailyGreeting] = useState('');
+  const [analysisResult, setAnalysisResult] = useState(''); // Store specific analysis
   const [showForm, setShowForm] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [countdown, setCountdown] = useState(0);
   
   // Unified Tabs for Mobile: 'todo', 'in-progress', 'done'
   const [activeTab, setActiveTab] = useState('todo'); 
@@ -19,7 +22,7 @@ function App() {
     fetchTasks();
   }, []);
 
-  // Fetch Daily Game Plan on load
+  // Fetch Daily Game Plan on load (Default)
   useEffect(() => {
     fetchDailyPlan();
   }, []); 
@@ -41,6 +44,53 @@ function App() {
       setDailyGreeting(res.data.message);
     } catch (error) {
       console.error("Error fetching daily plan", error);
+    }
+  };
+
+  const handleAnalyzeToday = async () => {
+    if (analyzing || countdown > 0) return;
+
+    // Filter for TODAY's tasks (Local Date Match)
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+    const todaysTasks = tasks.filter(t => {
+        if (!t.dueDate) return false;
+        // Localize
+        const due = new Date(t.dueDate);
+        const userTimezoneOffset = due.getTimezoneOffset() * 60000;
+        const localDue = new Date(due.getTime() + userTimezoneOffset);
+        return localDue >= startOfToday && localDue <= endOfToday && t.status !== 'done';
+    });
+
+    if (todaysTasks.length === 0) {
+        alert("No remaining tasks found for today to analyze! Good job!");
+        return;
+    }
+
+    setAnalyzing(true);
+    setCountdown(15);
+    
+    // Countdown Timer
+    const timer = setInterval(() => {
+        setCountdown(prev => {
+            if (prev <= 1) {
+                clearInterval(timer);
+                return 0;
+            }
+            return prev - 1;
+        });
+    }, 1000);
+
+    try {
+        const res = await api.post('/analyze-today', { tasks: todaysTasks });
+        setAnalysisResult(res.data.message);
+    } catch (error) {
+        console.error("Analysis failed", error);
+        alert(error.response?.data?.error || "AI could not analyze today. Try again later.");
+    } finally {
+        setAnalyzing(false);
     }
   };
 
@@ -94,14 +144,31 @@ function App() {
             </div>
             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 tracking-tight">TaskGenius</h1>
           </div>
-          {/* Desktop New Task Button */}
-          <button 
-            onClick={() => setShowForm(!showForm)}
-            className="hidden md:flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg transform active:scale-95"
-          >
-            <PlusIcon className="h-5 w-5" />
-            New Task
-          </button>
+          
+          <div className="flex items-center gap-3">
+              {/* Analyze Today Button (Desktop & Mobile) */}
+              <button
+                onClick={handleAnalyzeToday}
+                disabled={analyzing || countdown > 0}
+                className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-all ${
+                    countdown > 0 
+                    ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
+                    : 'bg-white text-indigo-600 border-indigo-200 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm'
+                }`}
+              >
+                  <SparklesIcon className={`h-4 w-4 ${analyzing ? 'animate-spin' : ''}`} />
+                  {countdown > 0 ? `Strategizing... (${countdown}s)` : "Analyze Today's Work"}
+              </button>
+
+              {/* New Task Button */}
+              <button 
+                onClick={() => setShowForm(!showForm)}
+                className="hidden md:flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg transform active:scale-95"
+              >
+                <PlusIcon className="h-5 w-5" />
+                New Task
+              </button>
+          </div>
         </div>
       </header>
 
@@ -113,20 +180,44 @@ function App() {
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex flex-col">
-        {/* Daily Briefing (AI) */}
-        {dailyGreeting && (
-             <div className="mb-8 bg-gradient-to-tr from-indigo-700 to-violet-700 rounded-2xl p-6 md:p-8 text-white shadow-xl shadow-indigo-300 ring-1 ring-white/20 relative overflow-hidden transition-all animate-fade-in-down">
+        
+        {/* Mobile Analyze Button */}
+        <div className="md:hidden mb-6">
+            <button
+                onClick={handleAnalyzeToday}
+                disabled={analyzing || countdown > 0}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-bold border transition-all shadow-sm ${
+                    countdown > 0 
+                    ? 'bg-gray-100 text-gray-400 border-gray-200' 
+                    : 'bg-white text-indigo-600 border-indigo-200 active:bg-indigo-50'
+                }`}
+            >
+                <SparklesIcon className={`h-4 w-4 ${analyzing ? 'animate-spin' : ''}`} />
+                {countdown > 0 ? `Strategizing... (${countdown}s)` : "✨ Analyze Today's Work"}
+            </button>
+        </div>
+
+        {/* Daily Briefing / Analysis Box (AI) */}
+        {(analysisResult || dailyGreeting) && (
+             <div className={`mb-8 rounded-2xl p-6 md:p-8 text-white shadow-xl ring-1 ring-white/20 relative overflow-hidden transition-all animate-fade-in-down ${
+                 analysisResult 
+                 ? 'bg-gradient-to-br from-slate-800 to-slate-900 shadow-slate-300' 
+                 : 'bg-gradient-to-tr from-indigo-700 to-violet-700 shadow-indigo-300'
+             }`}>
                 {/* Background Decor */}
                 <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
-                <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-40 h-40 bg-indigo-400 opacity-20 rounded-full blur-3xl"></div>
                 
                 <div className="relative z-10 flex flex-col md:flex-row gap-4 items-start md:items-center">
                     <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                        <SparklesIcon className="h-8 w-8 text-yellow-300" />
+                        <SparklesIcon className={`h-8 w-8 ${analysisResult ? 'text-emerald-300' : 'text-yellow-300'}`} />
                     </div>
                     <div>
-                        <h2 className="text-2xl md:text-3xl font-bold mb-2 tracking-tight text-white">✨ Your Daily Briefing</h2>
-                        <p className="opacity-95 leading-relaxed text-indigo-50 max-w-2xl text-base md:text-lg font-light">{dailyGreeting}</p>
+                        <h2 className="text-2xl md:text-3xl font-bold mb-2 tracking-tight text-white">
+                            {analysisResult ? "Your Today Strategy" : "✨ Your Daily Briefing"}
+                        </h2>
+                        <p className="opacity-95 leading-relaxed text-indigo-50 max-w-2xl text-base md:text-lg font-light">
+                            {analysisResult || dailyGreeting}
+                        </p>
                     </div>
                 </div>
              </div>
