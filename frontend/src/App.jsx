@@ -3,14 +3,16 @@ import api from './api';
 import Column from './components/Column';
 import NewTaskForm from './components/NewTaskForm';
 import TaskCard from './components/TaskCard';
-import { PlusIcon, SunIcon, ListBulletIcon, ClockIcon, CheckCircleIcon, CalendarIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, SunIcon, ListBulletIcon, CheckCircleIcon, ClockIcon, SparklesIcon } from '@heroicons/react/24/outline';
 
 function App() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dailyGreeting, setDailyGreeting] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [activeTab, setActiveTab] = useState('today'); // 'overdue', 'today', 'upcoming', 'done'
+  
+  // Unified Tabs for Mobile: 'todo', 'in-progress', 'done'
+  const [activeTab, setActiveTab] = useState('todo'); 
 
   // Fetch tasks
   useEffect(() => {
@@ -42,10 +44,10 @@ function App() {
     }
   };
 
-  const handleTaskCreated = (newTask) => {
-    setTasks([...tasks, newTask]);
+  const handleTaskCreated = () => {
+    // Re-fetch all tasks to ensure correct server-side sorting
+    fetchTasks();
     setShowForm(false);
-    if (newTask.priority === 'High') fetchDailyPlan();
   };
 
   const handleTaskUpdate = (updatedTask) => {
@@ -66,7 +68,7 @@ function App() {
     <button
       onClick={() => setActiveTab(id)}
       className={`flex-1 py-3 text-sm font-medium transition-all relative ${
-        activeTab === id ? 'text-gray-900' : 'text-gray-400 hover:text-gray-600'
+        activeTab === id ? 'text-gray-900 bg-white/50' : 'text-gray-400 hover:text-gray-600'
       }`}
     >
       <div className="flex items-center justify-center gap-2 relative z-10">
@@ -74,7 +76,7 @@ function App() {
         <span>{label}</span>
       </div>
       {activeTab === id && (
-        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-indigo-600 rounded-t-full transition-all"></span>
+        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-indigo-600 rounded-t-full transition-all"></span>
       )}
     </button>
   );
@@ -103,23 +105,30 @@ function App() {
         </div>
       </header>
 
-      {/* Mobile Tab Navigation */}
-      <div className="md:hidden bg-white border-b border-gray-100 flex justify-around sticky top-16 z-10 shadow-sm overflow-x-auto no-scrollbar">
-        <TabButton id="overdue" label="Overdue" icon={ExclamationTriangleIcon} colorClass="text-red-500" />
-        <TabButton id="today" label="Today" icon={SunIcon} colorClass="text-orange-500" />
-        <TabButton id="upcoming" label="Upcoming" icon={CalendarIcon} colorClass="text-blue-500" />
+      {/* Unified Mobile Tab Navigation: Status Based */}
+      <div className="md:hidden bg-white border-b border-gray-100 flex justify-around sticky top-16 z-10 shadow-sm">
+        <TabButton id="todo" label="To Do" icon={ListBulletIcon} colorClass="text-indigo-500" />
+        <TabButton id="in-progress" label="Doing" icon={ClockIcon} colorClass="text-amber-500" />
         <TabButton id="done" label="Done" icon={CheckCircleIcon} colorClass="text-emerald-500" />
       </div>
 
       <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex flex-col">
-        {/* Daily Greeting */}
+        {/* Daily Briefing (AI) */}
         {dailyGreeting && (
-             <div className="mb-8 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 md:p-8 text-white shadow-xl shadow-indigo-200 relative overflow-hidden transition-all">
-                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
-                <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-32 h-32 bg-indigo-400 opacity-20 rounded-full blur-xl"></div>
-                <SunIcon className="absolute top-6 right-6 h-12 w-12 text-white opacity-20" />
-                <h2 className="text-2xl md:text-3xl font-bold mb-3 tracking-tight">Daily Game Plan</h2>
-                <p className="opacity-90 leading-relaxed text-indigo-50 max-w-2xl text-base md:text-lg font-light">{dailyGreeting}</p>
+             <div className="mb-8 bg-gradient-to-tr from-indigo-700 to-violet-700 rounded-2xl p-6 md:p-8 text-white shadow-xl shadow-indigo-300 ring-1 ring-white/20 relative overflow-hidden transition-all animate-fade-in-down">
+                {/* Background Decor */}
+                <div className="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-white opacity-10 rounded-full blur-2xl"></div>
+                <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-40 h-40 bg-indigo-400 opacity-20 rounded-full blur-3xl"></div>
+                
+                <div className="relative z-10 flex flex-col md:flex-row gap-4 items-start md:items-center">
+                    <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
+                        <SparklesIcon className="h-8 w-8 text-yellow-300" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl md:text-3xl font-bold mb-2 tracking-tight text-white">✨ Your Daily Briefing</h2>
+                        <p className="opacity-95 leading-relaxed text-indigo-50 max-w-2xl text-base md:text-lg font-light">{dailyGreeting}</p>
+                    </div>
+                </div>
              </div>
         )}
 
@@ -145,36 +154,23 @@ function App() {
             </div>
         ) : (
             <>
-                {/* Mobile View: Deadline/Status Lists */}
+                {/* Mobile View: Unified Status Lists */}
                 <div className="md:hidden space-y-4">
                     {(() => {
-                        const now = new Date();
-                        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+                        const statusTasks = tasks.filter(t => t.status === activeTab);
+                        
+                        // Sort by Urgency Score Descending (should be default from API, but double check)
+                        // statusTasks.sort((a,b) => b.urgencyScore - a.urgencyScore); 
 
-                        let mobileTasks = [];
-                        if (activeTab === 'done') {
-                            mobileTasks = tasks.filter(t => t.status === 'done');
-                        } else {
-                            const activeTasks = tasks.filter(t => t.status !== 'done');
-                            if (activeTab === 'overdue') {
-                                mobileTasks = activeTasks.filter(t => t.dueDate && new Date(t.dueDate) < startOfToday);
-                            } else if (activeTab === 'today') {
-                                mobileTasks = activeTasks.filter(t => t.dueDate && new Date(t.dueDate) >= startOfToday && new Date(t.dueDate) <= endOfToday);
-                            } else if (activeTab === 'upcoming') {
-                                mobileTasks = activeTasks.filter(t => !t.dueDate || new Date(t.dueDate) > endOfToday);
-                            }
-                        }
-
-                        // Mobile Rendering using Column component logic but flat
                         return (
                             <div className="space-y-4 animate-fade-in">
-                                {mobileTasks.length === 0 ? (
-                                    <div className="text-center py-10 text-gray-400">
+                                {statusTasks.length === 0 ? (
+                                    <div className="text-center py-10 text-gray-400 flex flex-col items-center">
+                                        <ListBulletIcon className="h-10 w-10 mb-2 opacity-20" />
                                         <p>No tasks in {activeTab}</p>
                                     </div>
                                 ) : (
-                                    mobileTasks.map(task => (
+                                    statusTasks.map(task => (
                                         <TaskCard 
                                             key={task._id} 
                                             task={task} 
@@ -201,7 +197,7 @@ function App() {
                     </div>
                     <div className="flex-1 h-full">
                         <Column 
-                            title="In Progress" 
+                            title="Doing" 
                             status="in-progress"
                             tasks={tasks.filter(t => t.status === 'in-progress')} 
                             onTaskUpdate={handleTaskUpdate}

@@ -1,194 +1,253 @@
 import React, { useState } from 'react';
+import { 
+    CalendarIcon, 
+    BoltIcon, 
+    CheckCircleIcon, 
+    TrashIcon, 
+    PlayIcon, 
+    CheckIcon,
+    SparklesIcon
+} from '@heroicons/react/24/outline';
 import api from '../api';
-import { TrashIcon, SparklesIcon, CheckCircleIcon, CalendarIcon, ExclamationTriangleIcon, ClockIcon } from '@heroicons/react/24/outline';
-
-const priorityColors = {
-  High: 'bg-rose-100 text-rose-800 border-rose-200',
-  Medium: 'bg-amber-100 text-amber-800 border-amber-200',
-  Low: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  'Critical Hit': 'bg-red-600 text-white border-red-700 shadow-md shadow-red-200 animate-pulse-slow',
-  'Backburner': 'bg-slate-100 text-slate-500 border-slate-200',
-};
-
-const energyColors = {
-  'Deep Work': 'bg-violet-100 text-violet-800 border-violet-200',
-  'Admin': 'bg-sky-100 text-sky-800 border-sky-200',
-};
 
 const TaskCard = ({ task, onUpdate, onDelete }) => {
   const [loadingAI, setLoadingAI] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
+  const [aiProgress, setAiProgress] = useState(0);
 
-  const handleStatusChange = async (e) => {
-    const newStatus = e.target.value;
+  // Status Colors
+  const statusColors = {
+    'todo': 'bg-white border-gray-200',
+    'in-progress': 'bg-blue-50 border-blue-200 ring-1 ring-blue-100',
+    'done': 'bg-emerald-50 border-emerald-200 opacity-80'
+  };
+
+  // Priority Badge Logic
+  const priorityColors = {
+    'Critical Hit': 'bg-rose-100 text-rose-700 ring-rose-500/20',
+    'High': 'bg-orange-100 text-orange-700 ring-orange-500/20',
+    'Medium': 'bg-yellow-100 text-yellow-700 ring-yellow-500/20',
+    'Low': 'bg-green-100 text-green-700 ring-green-500/20',
+    'Backburner': 'bg-gray-100 text-gray-500 ring-gray-500/20'
+  };
+
+  // Relative Date Formatting
+  const getDeadlineDisplay = (isoString) => {
+    if (!isoString) return null;
+    
+    const date = new Date(isoString);
+    // Localize YYYY-MM-DD
+    const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+    const localDate = new Date(date.getTime() + userTimezoneOffset);
+    localDate.setHours(0,0,0,0);
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    // Calculate diff in days
+    const diffTime = localDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return { text: 'Overdue', color: 'text-red-700 bg-red-50 ring-red-600/20 animate-pulse-red' };
+    if (diffDays === 0) return { text: 'Today', color: 'text-orange-700 bg-orange-50 ring-orange-600/20' };
+    if (diffDays === 1) return { text: 'Tomorrow', color: 'text-amber-700 bg-amber-50 ring-amber-600/20' };
+    if (diffDays <= 7) return { text: `${diffDays} Days Left`, color: 'text-indigo-700 bg-indigo-50 ring-indigo-600/20' };
+    
+    // Future
+    return { 
+        text: localDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), 
+        color: 'text-gray-600 bg-gray-50 ring-gray-600/20' 
+    };
+  };
+
+  const deadline = getDeadlineDisplay(task.dueDate);
+
+  // Handle Status Change
+  const cycleStatus = async () => {
+    const nextStatus = {
+        'todo': 'in-progress',
+        'in-progress': 'done',
+        'done': 'todo'
+    };
+    const newStatus = nextStatus[task.status];
+    
+    // Optimistic Update
+    onUpdate({ ...task, status: newStatus });
+
     try {
-        const response = await api.put(`/tasks/${task._id}`, { status: newStatus });
-        onUpdate(response.data);
-    } catch (err) {
-        console.error("Update failed", err);
+        await api.put(`/tasks/${task._id}`, { status: newStatus });
+    } catch (error) {
+        console.error("Status update failed", error);
+        onUpdate({ ...task, status: task.status }); // Revert
     }
   };
 
+  // AI Breakdown Logic
   const handleBreakdown = async () => {
-    if (loadingAI || cooldown > 0) return;
     setLoadingAI(true);
-    
-    // Start cooldown immediately to prevent double clicks
-    setCooldown(10);
-    const interval = setInterval(() => {
-        setCooldown((prev) => {
-            if (prev <= 1) {
-                clearInterval(interval);
-                return 0;
-            }
-            return prev - 1;
+    setAiProgress(0);
+
+    const progressInterval = setInterval(() => {
+        setAiProgress(prev => {
+            if (prev >= 95) return 95; 
+            return prev + (100/150); 
         });
-    }, 1000);
-    
-    // 15s timeout
-    const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Request timed out")), 15000)
-    );
+    }, 100);
 
     try {
-      const res = await Promise.race([
-        api.post(`/tasks/${task._id}/breakdown`),
-        timeout
-      ]);
-      onUpdate(res.data);
-    } catch (err) {
-      console.error("AI Breakdown failed:", err);
-      // Show specific error from backend if available
-      const msg = err.response?.data?.error || "AI Service is busy. Please try again.";
-      alert(`AI Error: ${msg}`);
-    } finally {
-      setLoadingAI(false);
+        const res = await api.post(`/tasks/${task._id}/breakdown`);
+        clearInterval(progressInterval);
+        setAiProgress(100);
+        setTimeout(() => {
+            onUpdate(res.data);
+            setLoadingAI(false);
+        }, 500);
+
+    } catch (error) {
+        clearInterval(progressInterval);
+        console.error("AI breakdown failed", error);
+        if (error.response?.status === 429) {
+             alert("AI is resting. Please try again in 30 seconds.");
+        } else {
+             alert("AI Service Error. Please try again.");
+        }
+        setLoadingAI(false);
     }
   };
 
-  const isCritical = task.priority === 'Critical Hit' || task.priority === 'High';
-  
-  // Format deadline relative to today
-  const getDeadlineStatus = (dateString) => {
-      if (!dateString) return null;
-      const date = new Date(dateString);
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const diffTime = date - today;
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays < 0) return { label: 'Overdue', color: 'text-red-600 font-bold' };
-      if (diffDays === 0) return { label: 'Today', color: 'text-orange-600 font-bold' };
-      if (diffDays === 1) return { label: 'Tomorrow', color: 'text-amber-600' };
-      if (diffDays <= 7) return { label: `${diffDays} days left`, color: 'text-blue-600' };
-      return { label: date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }), color: 'text-gray-500' };
-  };
-
-  const deadline = getDeadlineStatus(task.dueDate);
+  const urgency = task.urgencyScore || 1; 
+  let heatBarColor = 'bg-emerald-500';
+  if (urgency >= 8) heatBarColor = 'bg-red-500';
+  else if (urgency >= 5) heatBarColor = 'bg-amber-500';
 
   return (
-    <div className={`bg-white p-5 rounded-2xl border border-white/60 shadow-xl shadow-slate-200/50 
-        md:hover:shadow-2xl md:hover:shadow-purple-500/10 md:hover:-translate-y-2 transition-all duration-300 
-        group ring-1 ring-black/5 md:hover:ring-purple-400/20 relative overflow-hidden
-        ${isCritical ? 'ring-rose-100' : ''}
-    `}>
-      {/* Decorative gradient blob */}
-      <div className="absolute -right-10 -top-10 h-32 w-32 bg-gradient-to-br from-indigo-50/50 to-purple-50/50 rounded-full blur-2xl md:group-hover:bg-purple-100/50 transition-colors pointer-events-none"></div>
-
-      <div className="relative z-10 flex justify-between items-start mb-3">
-        <h3 className={`font-bold text-lg leading-tight tracking-tight ${task.status === 'done' ? 'text-gray-400 line-through decoration-2' : 'text-gray-800'}`}>
-            {task.title}
-        </h3>
-        <button 
-            onClick={() => onDelete(task._id)} 
-            className="text-gray-400 md:text-gray-300 hover:text-rose-500 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-3 -mr-2 hover:bg-rose-50 rounded-lg touch-manipulation"
-            aria-label="Delete task"
-        >
-            <TrashIcon className="h-5 w-5" />
-        </button>
-      </div>
+    <div className={`relative group p-4 rounded-xl border shadow-sm hover:shadow-md transition-all duration-300 ${statusColors[task.status]} ${task.priority === 'Critical Hit' ? 'ring-2 ring-rose-100' : ''} animate-fade-in`}>
       
-      {task.description && (
-        <p className="relative z-10 text-sm text-gray-500 mb-5 leading-relaxed font-medium line-clamp-2">{task.description}</p>
-      )}
+      {/* Urgency Heat Bar */}
+      <div className="relative z-10 w-full mb-3">
+          <div className="flex justify-between items-end mb-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1">
+                <BoltIcon className="h-3 w-3" /> Urgency
+              </span>
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${urgency >= 8 ? 'bg-red-100 text-red-700' : urgency >= 5 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`} >
+                  {urgency.toFixed(1)}
+              </span>
+          </div>
+          <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div 
+                className={`h-full ${heatBarColor} transition-all duration-1000 ease-out`} 
+                style={{ width: `${Math.min((urgency / 10) * 100, 100)}%` }}
+              ></div>
+          </div>
+      </div>
 
-      {/* Meta Tags */}
-      <div className="relative z-10 flex gap-2 mb-4 flex-wrap">
-        <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border shadow-sm uppercase tracking-wider flex items-center gap-1 ${priorityColors[task.priority] || 'bg-gray-100'}`}>
-          {task.priority === 'Critical Hit' && <ExclamationTriangleIcon className="h-3 w-3" />}
-          {task.priority}
+      {/* Header: Priority & Relative Deadline */}
+      <div className="flex flex-wrap justify-between items-start mb-2 gap-2 relative z-10">
+        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ring-1 ring-inset ${priorityColors[task.priority] || 'bg-gray-100 text-gray-500'}`}>
+          {task.priority || 'Normal'}
         </span>
-        <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border shadow-sm uppercase tracking-wider ${energyColors[task.energyLevel] || 'bg-gray-100'}`}>
-          {task.energyLevel}
-        </span>
+        
         {deadline && (
-             <span className={`text-[10px] font-bold px-3 py-1.5 rounded-lg border border-gray-200 bg-gray-50 flex items-center gap-1 ${deadline.color}`}>
-                <ClockIcon className="h-3 w-3" />
-                {deadline.label}
-             </span>
+            <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-inset ${deadline.color}`}>
+                <CalendarIcon className="h-3 w-3" />
+                {deadline.text}
+            </span>
         )}
       </div>
 
-      {/* Subtasks / AI Button */}
+      {/* Title & Desc */}
+      <div className="relative z-10">
+          <h3 className={`font-semibold text-gray-800 leading-snug mb-1 ${task.status === 'done' ? 'line-through text-gray-400' : ''}`}>
+            {task.title}
+          </h3>
+          {task.description && (
+             <p className="text-xs text-gray-500 line-clamp-2 mb-3">{task.description}</p>
+          )}
+      </div>
+
+      {/* Subtasks / AI Checklist */}
       {task.subTasks && task.subTasks.length > 0 ? (
         <div className="relative z-10 mb-4 pl-4 border-l-[3px] border-indigo-500 bg-indigo-50/50 py-3 pr-2 rounded-r-xl">
             <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <SparklesIcon className="h-3 w-3" /> AI Game Plan
             </p>
-            <ul className="text-xs text-gray-700 space-y-2.5 font-medium">
+            <div className="space-y-2">
                 {task.subTasks.map((step, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5">
-                        <CheckCircleIcon className="h-4 w-4 mt-0.5 text-indigo-500 flex-shrink-0" />
-                        <span className="leading-snug">{step}</span>
-                    </li>
+                    <div key={idx} className="flex items-start gap-2.5 group/item cursor-pointer">
+                        <input type="checkbox" className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
+                        <span className="text-xs text-gray-700 font-medium leading-snug group-hover/item:text-indigo-700 transition-colors">{step}</span>
+                    </div>
                 ))}
-            </ul>
+            </div>
         </div>
       ) : (
+        <div className="mt-3 relative z-10">
+             {loadingAI ? (
+                <div className="w-full bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div className="flex justify-between items-center mb-2">
+                         <span className="text-[10px] font-bold text-indigo-600 animate-pulse">✨ AI is thinking...</span>
+                         <span className="text-[10px] font-medium text-gray-400">{Math.round(aiProgress)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                        <div 
+                            className="bg-indigo-500 h-1.5 rounded-full transition-all duration-300 ease-out" 
+                            style={{ width: `${aiProgress}%` }}
+                        ></div>
+                    </div>
+                </div>
+             ) : (
+                task.status !== 'done' && (
+                    <button 
+                        onClick={handleBreakdown}
+                        className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 border border-indigo-200"
+                    >
+                        <SparklesIcon className="h-3 w-3" /> Generate AI Steps
+                    </button>
+                )
+             )}
+        </div>
+      )}
+
+      {/* Footer: Permanent Actions (Visible Mobile & Desktop) */}
+      <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-end relative z-20">
+        
+        <div className="flex flex-col gap-1">
+             <span className="text-[10px] font-medium text-gray-400">
+                Created: {new Date(task.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+             </span>
+             <button 
+                onClick={() => onDelete(task._id)}
+                className="text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+                title="Delete Task"
+            >
+                <TrashIcon className="h-3 w-3" /> Delete
+            </button>
+        </div>
+
         <button 
-            onClick={handleBreakdown} 
-            disabled={loadingAI || cooldown > 0}
-            className={`relative z-10 w-full mb-5 flex items-center justify-center gap-2 text-sm font-bold text-white bg-gradient-to-r 
-                ${loadingAI || cooldown > 0 ? 'from-gray-400 to-gray-500 cursor-not-allowed' : 'from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500'} 
-                py-3.5 rounded-xl shadow-lg shadow-indigo-200 md:hover:shadow-indigo-300/50 transition-all duration-300 active:scale-95 group/btn touch-manipulation`}
+            onClick={cycleStatus}
+            className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg transition-all transform active:scale-95 border shadow-sm ${
+                task.status === 'done' 
+                ? 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200' 
+                : 'bg-indigo-600 text-white border-transparent hover:bg-indigo-700 hover:shadow-md'
+            }`}
         >
-            {loadingAI ? (
+            {task.status === 'done' ? (
                 <>
-                    <span className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></span>
-                    <span>Analyzing...</span>
+                    <CheckIcon className="h-3.5 w-3.5" /> Reopen
                 </>
-            ) : cooldown > 0 ? (
-                <span>Cooling down ({cooldown}s)</span>
+            ) : task.status === 'in-progress' ? (
+                <>
+                    <CheckIcon className="h-3.5 w-3.5" /> Complete
+                </>
             ) : (
                 <>
-                    <SparklesIcon className="h-4 w-4 text-indigo-100 md:group-hover/btn:text-white transition-colors" />
-                    <span>Generate AI Steps</span>
+                    <PlayIcon className="h-3.5 w-3.5" /> Start
                 </>
             )}
         </button>
-      )}
-
-      {/* Footer Controls */}
-      <div className="relative z-10 pt-3 border-t border-gray-100 flex justify-between items-center">
-        <div className="relative">
-            <select 
-                value={task.status} 
-                onChange={handleStatusChange}
-                className="appearance-none pl-3 pr-8 py-2 text-xs font-bold bg-gray-50 hover:bg-white border border-transparent hover:border-gray-200 rounded-lg text-gray-600 cursor-pointer focus:ring-2 focus:ring-indigo-500/20 transition-all shadow-sm touch-manipulation"
-            >
-                <option value="todo">To Do</option>
-                <option value="in-progress">In Progress</option>
-                <option value="done">Done</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-            </div>
-        </div>
-        <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-md">
-            {new Date(task.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
-        </span>
       </div>
     </div>
   );
 };
+
 export default TaskCard;

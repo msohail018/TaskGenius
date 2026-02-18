@@ -24,14 +24,12 @@ const TaskSchema = new mongoose.Schema({
   },
   priority: {
     type: String,
-    enum: ['High', 'Medium', 'Low'],
+    enum: ['High', 'Medium', 'Low', 'Critical Hit', 'Backburner'],
     default: 'Medium',
   },
   energyLevel: {
     type: String,
     enum: ['Deep Work', 'Admin'],
-    // Providing default or let AI set it? Prompt says "AI should analyze... and automatically assign".
-    // We'll leave it optional or default to 'Admin' until AI sets it.
   },
   status: {
     type: String,
@@ -46,12 +44,15 @@ const TaskSchema = new mongoose.Schema({
     type: Date,
   },
   category: {
-    type: String, // e.g., 'Work', 'Personal', or AI assigned 'Critical', 'Backburner'
+    type: String,
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
+}, {
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 module.exports = mongoose.model('Task', TaskSchema);
