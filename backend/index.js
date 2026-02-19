@@ -234,10 +234,14 @@ app.post('/api/tasks', async (req, res) => {
 Today's date is ${today}.
 User input: "${text}"
 
-Rules:
-- "tonight" or "today" → dueDate = ${today}
-- "tomorrow" → dueDate = next day
-- No date mentioned → infer a realistic future date
+Date Rules (follow in order):
+1. If the user mentions a SPECIFIC date (e.g. "10-feb-2026", "Feb 10", "10/02/2026", "27-feb-2026"), use that EXACT date — even if it is in the past. Past dates are valid and must NOT be changed.
+2. "tonight" or "today" → dueDate = ${today}
+3. "tomorrow" → dueDate = the day after ${today}
+4. Words like "this week" → nearest Friday from ${today}
+5. No date at all → pick a realistic near-future date based on the task
+
+CRITICAL: If the user explicitly states a date, always honor it exactly, whether past or future.
 
 Return ONLY this JSON object. No markdown. No backticks. No extra text:
 {
@@ -245,7 +249,7 @@ Return ONLY this JSON object. No markdown. No backticks. No extra text:
   "description": "brief details",
   "priority": "High",
   "energyLevel": "Admin",
-  "dueDate": "${today}",
+  "dueDate": "YYYY-MM-DD",
   "subTasks": ["step 1", "step 2", "step 3"]
 }
             `.trim();
