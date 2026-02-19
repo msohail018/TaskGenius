@@ -126,7 +126,11 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
   else if (urgency >= 5) heatBarColor = 'bg-amber-500';
 
   return (
-    <div className={`relative group p-4 rounded-xl border shadow-sm hover:shadow-md transition-all duration-300 ${statusColors[task.status]} ${task.priority === 'Critical Hit' ? 'ring-2 ring-rose-100' : ''} animate-fade-in`}>
+    <div
+      className={`relative group p-4 rounded-xl border shadow-sm hover:shadow-md transition-all duration-300 ${statusColors[task.status]} ${task.priority === 'Critical Hit' ? 'ring-2 ring-rose-100' : ''} animate-fade-in`}
+      role="article"
+      aria-label={`Task: ${task.title}, Status: ${task.status}, Priority: ${task.priority}`}
+    >
       
       {/* Urgency Heat Bar */}
       <div className="relative z-10 w-full mb-3">
@@ -175,6 +179,9 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
         <div className="relative z-10 mb-4 bg-indigo-50/50 rounded-xl overflow-hidden border border-indigo-100 transition-all">
             <button 
                 onClick={() => setIsStepsExpanded(!isStepsExpanded)}
+                aria-expanded={isStepsExpanded}
+                aria-controls="subtasks-list"
+                aria-label={isStepsExpanded ? 'Collapse AI steps' : 'Expand AI steps'}
                 className="w-full flex items-center justify-between p-3 text-left hover:bg-indigo-50/80 transition-colors"
             >
                 <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest flex items-center gap-2">
@@ -189,11 +196,16 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
             </button>
             
             {isStepsExpanded && (
-                <div className="px-4 pb-4 animate-fade-in space-y-2.5 border-t border-indigo-100/50 pt-3">
+                <div id="subtasks-list" className="px-4 pb-4 animate-fade-in space-y-2.5 border-t border-indigo-100/50 pt-3" role="list">
                     {task.subTasks.map((step, idx) => (
-                        <div key={idx} className="flex items-start gap-3 group/item cursor-pointer">
-                            <input type="checkbox" className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
-                            <span className="text-xs text-gray-700 font-medium leading-snug group-hover/item:text-indigo-700 transition-colors">{step}</span>
+                        <div key={idx} className="flex items-start gap-3 group/item cursor-pointer" role="listitem">
+                            <input
+                              type="checkbox"
+                              id={`step-${task._id}-${idx}`}
+                              aria-label={step}
+                              className="mt-0.5 h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                            />
+                            <label htmlFor={`step-${task._id}-${idx}`} className="text-xs text-gray-700 font-medium leading-snug group-hover/item:text-indigo-700 transition-colors cursor-pointer">{step}</label>
                         </div>
                     ))}
                 </div>
@@ -218,6 +230,7 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
                 task.status !== 'done' && (
                     <button 
                         onClick={handleBreakdown}
+                        aria-label={`Generate AI steps for: ${task.title}`}
                         className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1 border border-indigo-200"
                     >
                         <SparklesIcon className="h-3 w-3" /> Generate AI Steps
@@ -237,6 +250,7 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
              <button 
                 onClick={() => onDelete(task._id)}
                 className="text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider"
+                aria-label={`Delete task: ${task.title}`}
                 title="Delete Task"
             >
                 <TrashIcon className="h-3 w-3" /> Delete
@@ -245,6 +259,7 @@ const TaskCard = ({ task, onUpdate, onDelete }) => {
 
         <button 
             onClick={cycleStatus}
+            aria-label={`Mark task as ${task.status === 'done' ? 'To Do' : task.status === 'in-progress' ? 'Done' : 'In Progress'}: ${task.title}`}
             className={`flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-lg transition-all transform active:scale-95 border shadow-sm ${
                 task.status === 'done' 
                 ? 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200' 

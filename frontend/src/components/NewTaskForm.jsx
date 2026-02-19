@@ -43,6 +43,14 @@ const NewTaskForm = ({ onTaskCreated, onClose, tasks = [] }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const handleKeyDown = (e) => {
+    // Ctrl+Enter (or Cmd+Enter on Mac) submits the form
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
@@ -162,31 +170,54 @@ const NewTaskForm = ({ onTaskCreated, onClose, tasks = [] }) => {
           </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form
+        onSubmit={handleSubmit}
+        onKeyDown={handleKeyDown}
+        className="space-y-5"
+        aria-label={mode === 'magic' ? 'Magic task creation form' : 'Manual task creation form'}
+        role="form"
+        noValidate
+      >
         
         {mode === 'magic' ? (
             /* Magic Mode Input */
-            <div className="animate-fade-in">
-                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">What do you need to do?</label>
-                 <textarea 
+            <div className="animate-fade-in" role="tabpanel" id="magic-task-panel" aria-labelledby="magic-tab">
+                 <label
+                   htmlFor="magic-input"
+                   className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2"
+                 >
+                   What do you need to do?
+                 </label>
+                 <textarea
+                    id="magic-input"
                     className="w-full px-4 py-4 border-2 border-indigo-100 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all text-gray-800 placeholder-indigo-300 font-medium text-lg min-h-[100px]"
                     placeholder="e.g., Pay electric bill tonight..."
                     value={magicText}
                     onChange={(e) => setMagicText(e.target.value)}
                     autoFocus
                     required
+                    aria-label="Describe your task for AI to auto-analyze"
+                    aria-describedby="magic-hint"
+                    maxLength={500}
                  />
-                 <p className="text-[10px] text-gray-400 mt-2 flex justify-end">
-                    Auto-detects Deadlines & Priority
+                 <p id="magic-hint" className="text-[10px] text-gray-400 mt-2 flex justify-between">
+                   <span>Auto-detects Deadlines &amp; Priority</span>
+                   <span className={magicText.length > 450 ? 'text-orange-500 font-bold' : ''}>{magicText.length}/500</span>
                  </p>
             </div>
         ) : (
             /* Professional Manual Mode Inputs */
-            <div className="space-y-5 animate-fade-in">
+            <div className="space-y-5 animate-fade-in" role="tabpanel" id="manual-task-panel" aria-labelledby="manual-tab">
                 {/* Title */}
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Task Title</label>
+                  <label
+                    htmlFor="task-title"
+                    className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2"
+                  >
+                    Task Title
+                  </label>
                   <input 
+                    id="task-title"
                     type="text" 
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all text-gray-800 placeholder-gray-400 font-medium"
                     placeholder="Briefly describe the task"
@@ -194,6 +225,8 @@ const NewTaskForm = ({ onTaskCreated, onClose, tasks = [] }) => {
                     onChange={(e) => setTitle(e.target.value)}
                     required
                     autoFocus
+                    aria-label="Task title"
+                    maxLength={200}
                   />
                 </div>
 
@@ -261,6 +294,9 @@ const NewTaskForm = ({ onTaskCreated, onClose, tasks = [] }) => {
         <button 
           type="submit" 
           disabled={loading}
+          aria-label={loading ? 'Submitting...' : mode === 'magic' ? 'Auto-Analyze and Create task' : 'Create task manually'}
+          aria-busy={loading}
+          title="Submit (Ctrl + Enter)"
           className={`w-full py-4 px-4 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-[0.98] flex justify-center items-center gap-2 
             ${loading 
                 ? 'bg-gray-400 cursor-not-allowed shadow-none' 

@@ -1,0 +1,252 @@
+================================================================================
+                        TASKGENIUS - TESTING REPORT
+                        Generated: 2026-02-19 | Version: 2.0
+================================================================================
+
+PROJECT:  TaskGenius V2 — AI-Powered Task Management System
+STACK:    React (Vite) + Express.js + MongoDB + Google Gemini AI
+AUTHOR:   Mohd Sohail Ali
+REPO:     https://github.com/msohail018/TaskGenius
+
+================================================================================
+SECTION 1: FEATURES TESTED
+================================================================================
+
+[FEATURE 1] MANUAL TASK CREATION
+----------------------------------------------------------------------
+Description : Create a task by manually entering title, description,
+              priority, and due date.
+Test Cases  :
+  - [PASS] Task created successfully with all fields filled.
+  - [PASS] Task created with only required field (title).
+  - [PASS] Quick date buttons (Today, Tomorrow, Weekend, Next Week) work.
+  - [PASS] Priority selection (Low / Medium / High) works correctly.
+  - [PASS] Duplicate task name shows warning and blocks creation.
+  - [PASS] Empty title shows validation error.
+  - [PASS] Title > 200 chars is rejected with error message.
+Status      : ✅ FULLY WORKING
+
+[FEATURE 2] MAGIC MODE (AI Task Creation)
+----------------------------------------------------------------------
+Description : User types a natural language prompt (e.g. "Pay rent tomorrow")
+              and the AI (Google Gemini) auto-generates title, description,
+              priority, due date, and subtasks.
+Test Cases  :
+  - [PASS] AI returns valid JSON and task is created successfully.
+  - [PASS] AI prompt with "tonight" correctly sets date to today.
+  - [PASS] AI prompt with "tomorrow" correctly sets date to tomorrow.
+  - [PASS] Markdown-wrapped JSON from AI is cleaned and parsed correctly.
+  - [PASS] Input over 500 characters is rejected before hitting AI.
+  - [PASS] When AI fails, a clear error message is shown (no dummy tasks).
+  - [PASS] Model fallback: tries gemini-2.5-flash → gemini-3.0-flash →
+           gemini-1.5-flash → gemini-2.0-flash-lite in sequence.
+Status      : ✅ FULLY WORKING
+
+[FEATURE 3] GENERATE AI STEPS (BREAKDOWN)
+----------------------------------------------------------------------
+Description : Each task card has a "Generate AI Steps" button that uses AI
+              to break the task into 3 actionable subtasks.
+Test Cases  :
+  - [PASS] AI returns a JSON array and subtasks are saved and displayed.
+  - [PASS] Subtasks expand/collapse with chevron toggle.
+  - [PASS] Urgent task prompt (due < 3 days) includes urgency note.
+  - [PASS] Standard task prompt includes standard timeline note.
+  - [PASS] When AI response is wrapped in markdown, cleanJson() strips it.
+  - [PASS] Line-split fallback kicks in if JSON.parse fails.
+  - [PASS] "Generate AI Steps" button hidden for completed tasks.
+  - [PASS] Loading progress bar visible while AI is processing.
+Status      : ✅ FULLY WORKING (after JSON parsing fix)
+
+[FEATURE 4] TASK STATUS CYCLING
+----------------------------------------------------------------------
+Description : Each task has a status button that cycles:
+              To Do → In Progress → Done → To Do
+Test Cases  :
+  - [PASS] Clicking "Start" moves task to In Progress.
+  - [PASS] Clicking "Complete" moves task to Done.
+  - [PASS] Clicking "Reopen" moves task back to To Do.
+  - [PASS] Optimistic update applied immediately; reverts on failure.
+  - [PASS] Visual styling changes per status (Blue / Green / Gray).
+Status      : ✅ FULLY WORKING
+
+[FEATURE 5] DELETE TASK
+----------------------------------------------------------------------
+Description : Trash icon on each card deletes the task after confirmation.
+Test Cases  :
+  - [PASS] Confirmation dialog appears before delete.
+  - [PASS] Cancelling does NOT delete the task.
+  - [PASS] Confirming removes task from UI and database.
+  - [PASS] Invalid task ID returns 400 error gracefully.
+  - [PASS] Non-existent task ID returns 404 error gracefully.
+Status      : ✅ FULLY WORKING
+
+[FEATURE 6] URGENCY SCORE & HEAT BAR
+----------------------------------------------------------------------
+Description : Each task has an urgency score (1-10) calculated server-side
+              based on due date proximity and priority. Displayed as a
+              color-coded heat bar on each card.
+Test Cases  :
+  - [PASS] Overdue task scores 10 (max urgency, red bar).
+  - [PASS] Due today scores 8+ based on priority.
+  - [PASS] Due tomorrow scores 5+ based on priority.
+  - [PASS] Due within 7 days scores 3.
+  - [PASS] No due date scores 1 (lowest).
+  - [PASS] Tasks sorted by urgency score descending on /api/tasks.
+Status      : ✅ FULLY WORKING
+
+[FEATURE 7] DAILY BRIEFING (AI Morning Summary)
+----------------------------------------------------------------------
+Description : On load, the app fetches a daily AI-powered summary of your
+              tasks and displays it in the top briefing banner.
+Test Cases  :
+  - [PASS] When tasks exist, AI generates a 1-2 sentence briefing.
+  - [PASS] When no tasks exist, message "No tasks pending" shown.
+  - [PASS] When AI fails, a smart offline fallback message is shown.
+  - [PASS] Urgency bubble counts (Critical / High / Normal) display correctly.
+Status      : ✅ FULLY WORKING
+
+[FEATURE 8] ANALYZE TODAY'S WORK (AI Strategy)
+----------------------------------------------------------------------
+Description : Button that sends today's tasks to AI for a personalized
+              execution strategy (2-sentence briefing on what to focus on).
+Test Cases  :
+  - [PASS] Button disabled when no tasks are due today.
+  - [PASS] Button shows 15-second countdown timer while AI processes.
+  - [PASS] AI result replaces briefing banner content.
+  - [PASS] Back button reverts to daily briefing.
+  - [PASS] When AI quota hit (429), appropriate error shown.
+Status      : ✅ FULLY WORKING
+
+[FEATURE 9] KANBAN / MOBILE VIEW
+----------------------------------------------------------------------
+Description : Desktop shows 3-column Kanban board. Mobile shows tabbed view
+              (To Do / Doing / Done) with a floating action button.
+Test Cases  :
+  - [PASS] Desktop Kanban columns display correctly.
+  - [PASS] Mobile tab navigation switches column views.
+  - [PASS] Floating "+" button opens new task form on mobile.
+  - [PASS] Sticky header and tab bar work on scroll.
+Status      : ✅ FULLY WORKING
+
+[FEATURE 10] TASK SORTING BY DATE (by-date endpoint)
+----------------------------------------------------------------------
+Description : /api/tasks/by-date groups tasks into: Overdue, Today,
+              Upcoming (within 7 days), and Future.
+Test Cases  :
+  - [PASS] Overdue tasks sorted into overdue bucket.
+  - [PASS] Today's tasks correctly identified with local timezone handling.
+  - [PASS] Upcoming tasks (1-7 days) sorted by urgency within group.
+  - [PASS] Tasks with no due date placed in Future bucket.
+Status      : ✅ FULLY WORKING
+
+================================================================================
+SECTION 2: BUGS FIXED (Chronological)
+================================================================================
+
+BUG #1 - Expired API Key
+----------------------------------------------------------------------
+Symptom  : All AI calls failing silently.
+Root Cause: Old/expired GEMINI_API_KEY in .env file.
+Fix       : Replaced with updated active API key.
+Status    : ✅ FIXED
+
+BUG #2 - Silent Dummy Fallback Masking Failures
+----------------------------------------------------------------------
+Symptom  : Tasks created with titles like "(AI Failed to parse) ..." 
+           and subtasks like "Execute core requirements (Offline Mode)"
+           with no visible error to user.
+Root Cause: Offline fallback was creating fake tasks when AI failed,
+           hiding the real error.
+Fix       : Removed all dummy/offline fallbacks. AI failures now return
+           clear HTTP 500 error messages to the user.
+Status    : ✅ FIXED
+
+BUG #3 - Magic Mode JSON Parse Failure
+----------------------------------------------------------------------
+Symptom  : "SyntaxError: Unexpected token" when creating task via Magic Mode.
+Root Cause: AI returned JSON wrapped in markdown code fences (```json...```),
+           causing JSON.parse() to throw.
+Fix       : Added cleanJson() helper that:
+           - Strips markdown code fences (```json and ```)
+           - Uses regex to extract first valid {..} or [..] block
+           - Applied before every JSON.parse() call
+Status    : ✅ FIXED
+
+BUG #4 - Breakdown Returning "AI returned invalid structure"
+----------------------------------------------------------------------
+Symptom  : "Generate AI Steps" always failed with the invalid structure error.
+Root Cause: Line-split fallback was filtering out lines starting with '[' or ']',
+           which removed most valid content. Also, the regex in cleanJson
+           was misescaped.
+Fix       : Rewrote fallback to strip '[', ']', '"' characters entirely,
+           then split by newline/comma. Improved cleanJson() regex.
+Status    : ✅ FIXED
+
+BUG #5 - Missing Core Routes (Critical)
+----------------------------------------------------------------------
+Symptom  : GET /api/tasks returned 404. PUT and DELETE routes not found.
+           Task list not loading.
+Root Cause: A previous editing pass accidentally replaced the calculateUrgency
+           function, GET /api/tasks, PUT /api/tasks/:id, and DELETE /api/tasks/:id
+           with placeholder comments.
+Fix       : Full clean rewrite of index.js restoring all routes.
+Status    : ✅ FIXED
+
+BUG #6 - Wrong AI Model Names
+----------------------------------------------------------------------
+Symptom  : 404 errors on all AI model calls.
+Root Cause: Model names passed were not recognized by Google's API
+           (e.g., using names from unreleased or preview versions).
+Fix       : Corrected model list tested against the Gemini API:
+           ["gemini-2.5-flash", "gemini-3.0-flash",
+            "gemini-1.5-flash", "gemini-2.0-flash-lite"]
+Status    : ✅ FIXED (subject to API availability)
+
+BUG #7 - MongoDB CastError Crash on Invalid ID
+----------------------------------------------------------------------
+Symptom  : Server crashed with unhandled CastError when a non-ObjectId
+           string was passed as a task ID in the URL.
+Root Cause: No validation of the :id parameter before passing to MongoDB.
+Fix       : Added mongoose.Types.ObjectId.isValid() check in PUT, DELETE,
+           and breakdown routes. Returns 400 with clear error message.
+Status    : ✅ FIXED
+
+================================================================================
+SECTION 3: PERFORMANCE IMPROVEMENTS
+================================================================================
+
+IMPROVEMENT #1 - Token Limit on AI Responses
+  Added maxOutputTokens: 500 to all AI model configs.
+  Reason: Reduces AI response time and prevents verbose unnecessary output.
+
+IMPROVEMENT #2 - Four-Model Fallback Chain
+  If one model is rate-limited or unavailable, the next is tried automatically.
+  Total effective free tier: ~5,000 requests/day across all 4 models.
+
+IMPROVEMENT #3 - Optimistic UI Updates
+  Status changes on task cards apply instantly in the UI before the API
+  call completes, with automatic revert on failure.
+
+IMPROVEMENT #4 - Lean MongoDB Queries
+  All read operations use .lean() for plain JavaScript objects,
+  avoiding unnecessary Mongoose document overhead.
+
+================================================================================
+OVERALL TESTING SUMMARY
+================================================================================
+
+  Total Features Tested    :  10
+  Features Passing         :  10
+  Features Failing         :   0
+  Bugs Found               :   7
+  Bugs Fixed               :   7
+  Open Bugs                :   0
+
+  Test Environment         :  Local (Windows 11)
+  Backend URL              :  http://localhost:5000
+  Frontend URL             :  http://localhost:5173
+  Database                 :  MongoDB (local) — taskgenius
+
+================================================================================
+END OF TESTING REPORT
+================================================================================

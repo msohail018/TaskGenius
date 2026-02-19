@@ -3,6 +3,7 @@ import api from './api';
 import Column from './components/Column';
 import NewTaskForm from './components/NewTaskForm';
 import TaskCard from './components/TaskCard';
+import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
 import { PlusIcon, SunIcon, ListBulletIcon, CheckCircleIcon, ClockIcon, SparklesIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 function App() {
@@ -16,7 +17,16 @@ function App() {
   const [showStrategy, setShowStrategy] = useState(true);
   
   // Unified Tabs for Mobile: 'todo', 'in-progress', 'done'
-  const [activeTab, setActiveTab] = useState('todo'); 
+  const [activeTab, setActiveTab] = useState('todo');
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // ── Global Keyboard Shortcuts ──
+  useKeyboardShortcuts([
+    { key: 'n', action: () => setShowForm(true),       },
+    { key: 'Escape', action: () => { setShowForm(false); setShowShortcuts(false); }, preventDefault: false },
+    { key: '?', action: () => setShowShortcuts(s => !s) },
+    { key: 'a', action: () => { if (canAnalyze && !analyzing && countdown === 0) handleAnalyzeToday(); } },
+  ]);
 
   // Fetch tasks
   useEffect(() => {
@@ -51,45 +61,42 @@ function App() {
   const handleAnalyzeToday = async () => {
     if (analyzing || countdown > 0) return;
 
-    // Filter for TODAY's tasks (Local Date Match)
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
-    const todaysTasks = tasks.filter(t => {
+    // Include BOTH today's tasks AND overdue tasks (anything not done with a past/today due date)
+    const relevantTasks = tasks.filter(t => {
+        if (t.status === 'done') return false;
         if (!t.dueDate) return false;
-        // Localize
         const due = new Date(t.dueDate);
         const userTimezoneOffset = due.getTimezoneOffset() * 60000;
         const localDue = new Date(due.getTime() + userTimezoneOffset);
-        return localDue >= startOfToday && localDue <= endOfToday && t.status !== 'done';
+        // Include if due today OR overdue (past today)
+        return localDue <= endOfToday;
     });
 
-    if (todaysTasks.length === 0) {
-        alert("No remaining tasks found for today to analyze! Good job!");
+    if (relevantTasks.length === 0) {
+        alert("No active tasks due today or overdue to analyze!");
         return;
     }
 
     setAnalyzing(true);
     setCountdown(15);
     
-    // Countdown Timer
     const timer = setInterval(() => {
         setCountdown(prev => {
-            if (prev <= 1) {
-                clearInterval(timer);
-                return 0;
-            }
+            if (prev <= 1) { clearInterval(timer); return 0; }
             return prev - 1;
         });
     }, 1000);
 
     try {
-        const res = await api.post('/analyze-today', { tasks: todaysTasks });
+        const res = await api.post('/analyze-today', { tasks: relevantTasks });
         setAnalysisResult(res.data.message);
     } catch (error) {
         console.error("Analysis failed", error);
-        alert(error.response?.data?.error || "AI could not analyze today. Try again later.");
+        alert(error.response?.data?.error || "AI could not analyze. Try again later.");
     } finally {
         setAnalyzing(false);
     }
@@ -132,21 +139,21 @@ function App() {
     </button>
   );
 
-  // Helper: Check if there are ACTUAL tasks for today to enable the button
+  // Helper: Button enabled if there are today's tasks OR overdue tasks (not done)
   const hasTasksForToday = () => {
       const now = new Date();
-      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      
+
       return tasks.some(t => {
-          if (!t.dueDate || t.status !== 'todo') return false; // Strict: Only TODO tasks
+          if (!t.dueDate || t.status === 'done') return false;
           const due = new Date(t.dueDate);
           const userTimezoneOffset = due.getTimezoneOffset() * 60000;
           const localDue = new Date(due.getTime() + userTimezoneOffset);
-          return localDue >= startOfToday && localDue <= endOfToday;
+          // Enable for today AND overdue tasks
+          return localDue <= endOfToday;
       });
   };
-  
+
   const canAnalyze = hasTasksForToday();
   
   const todoTasks = tasks.filter(t => t.status === 'todo');
@@ -176,7 +183,64 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-gray-900 overflow-x-hidden">
-      {/* Header */}
+
+      {/* ── Keyboard Shortcuts Help Panel ── */}
+      {showShortcuts && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Keyboard shortcuts"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowShortcuts(false); }}
+        >
+          {/* Backdrop */}
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+
+          {/* Panel */}
+          <div className="relative z-10 bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 w-full max-w-sm animate-fade-in-down">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <span className="text-2xl">⌨️</span> Keyboard Shortcuts
+              </h2>
+              <button
+                onClick={() => setShowShortcuts(false)}
+                aria-label="Close keyboard shortcuts panel"
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {[
+                { keys: ['N'],           desc: 'Open New Task form' },
+                { keys: ['A'],           desc: "Analyze Today's Work" },
+                { keys: ['?'],           desc: 'Toggle this shortcuts panel' },
+                { keys: ['Esc'],         desc: 'Close any open panel / form' },
+                { keys: ['Ctrl', 'Enter'], desc: 'Submit the open form' },
+                { keys: ['Tab'],           desc: 'Navigate between elements' },
+                { keys: ['Enter', 'Space'], desc: 'Activate focused button' },
+              ].map(({ keys, desc }) => (
+                <div key={desc} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                  <span className="text-sm text-gray-600">{desc}</span>
+                  <div className="flex items-center gap-1">
+                    {keys.map(k => (
+                      <kbd key={k} className="px-2 py-1 text-[11px] font-bold bg-gray-100 border border-gray-300 rounded-md text-gray-700 shadow-sm font-mono">
+                        {k}
+                      </kbd>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-4 text-[11px] text-gray-400 text-center">
+              Shortcuts are disabled while typing in input fields.
+            </p>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center relative">
           {/* Centered Branding */}
@@ -197,10 +261,23 @@ function App() {
           </div>
           
           <div className="flex items-center gap-3 ml-auto">
+              {/* Keyboard Shortcut Hint */}
+              <button
+                onClick={() => setShowShortcuts(true)}
+                aria-label="Show keyboard shortcuts (press ?)"
+                title="Keyboard Shortcuts (?)"
+                className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold text-gray-400 border border-gray-200 hover:text-gray-600 hover:bg-gray-50 transition-all"
+              >
+                <kbd className="font-mono text-xs">?</kbd>
+                <span>Shortcuts</span>
+              </button>
+
               {/* Analyze Today Button (Desktop & Mobile) */}
               <button
                 onClick={handleAnalyzeToday}
                 disabled={analyzing || countdown > 0 || !canAnalyze}
+                aria-label={!canAnalyze ? "Analyze — no active tasks due today or overdue" : "Analyze Today & Overdue tasks (press A)"}
+                aria-busy={analyzing}
                 className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-all ${
                     countdown > 0 || !canAnalyze
                     ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
@@ -208,15 +285,17 @@ function App() {
                 }`}
               >
                   <SparklesIcon className={`h-4 w-4 ${analyzing ? 'animate-spin' : ''}`} />
-                  {countdown > 0 ? `Strategizing... (${countdown}s)` : "Analyze Today's Work"}
+                  {countdown > 0 ? `Strategizing... (${countdown}s)` : "Analyze Today & Overdue"}
               </button>
 
               {/* New Task Button */}
               <button 
                 onClick={() => setShowForm(!showForm)}
+                aria-label="New Task (press N)"
+                aria-expanded={showForm}
                 className="flex items-center gap-2 bg-gray-900 hover:bg-gray-800 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg transform active:scale-95"
               >
-                <PlusIcon className="h-5 w-5" />
+                <PlusIcon className="h-5 w-5" aria-hidden="true" />
                 <span className="hidden md:inline">New Task</span>
               </button>
           </div>
@@ -244,7 +323,7 @@ function App() {
                 }`}
             >
                 <SparklesIcon className={`h-4 w-4 ${analyzing ? 'animate-spin' : ''}`} />
-                {countdown > 0 ? `Strategizing... (${countdown}s)` : "✨ Analyze Today's Work"}
+                {countdown > 0 ? `Strategizing... (${countdown}s)` : "✨ Analyze Today & Overdue"}
             </button>
         </div>
 

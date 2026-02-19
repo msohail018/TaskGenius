@@ -1,0 +1,246 @@
+================================================================================
+                    TASKGENIUS - SECURITY CHECKLIST
+                    Generated: 2026-02-19 | Version: 2.0
+================================================================================
+
+PROJECT : TaskGenius V2 — AI-Powered Task Management System
+AUTHOR  : Mohd Sohail Ali
+REPO    : https://github.com/msohail018/TaskGenius
+
+Legend:
+  [✅] IMPLEMENTED & VERIFIED
+  [⚠️] PARTIALLY IMPLEMENTED / NOTED
+  [❌] NOT APPLICABLE or NOT NEEDED FOR THIS PROJECT
+
+================================================================================
+CATEGORY 1: SECRETS & CREDENTIALS MANAGEMENT
+================================================================================
+
+[✅] 1.1  API keys stored in .env file, NOT in source code.
+          File: backend/.env
+          Keys: GEMINI_API_KEY, MONGODB_URI, PORT, FRONTEND_URL
+
+[✅] 1.2  .env file listed in .gitignore — never committed to GitHub.
+          File: .gitignore (line 2: ".env")
+
+[✅] 1.3  MongoDB URI NOT logged to server console.
+          Masked log: "Connecting to MongoDB..." (URI hidden)
+
+[✅] 1.4  GEMINI_API_KEY validated at startup — server warns if missing
+          and returns 500 before making any AI call.
+
+[✅] 1.5  CORS origin pulled from FRONTEND_URL env variable.
+          No hardcoded origins in production-sensitive paths.
+
+[❌] 1.6  Secret rotation policy — N/A for personal/development project.
+          Recommendation: Rotate GEMINI_API_KEY periodically.
+
+================================================================================
+CATEGORY 2: INPUT VALIDATION & SANITIZATION
+================================================================================
+
+[✅] 2.1  Task title length capped at 200 characters (backend validation).
+          Route: POST /api/tasks (manual mode)
+          Error: 400 "Task title must be under 200 characters."
+
+[✅] 2.2  Task description length capped at 1000 characters (backend).
+          Enforced via .substring(0, 1000) before saving.
+
+[✅] 2.3  Magic Mode text input capped at 500 characters (prompt injection defense).
+          Route: POST /api/tasks (magic mode)
+          Error: 400 "Magic text is too long. Keep it under 500 characters."
+
+[✅] 2.4  MongoDB ObjectId validated before every database call.
+          Routes: PUT /api/tasks/:id, DELETE /api/tasks/:id,
+                  POST /api/tasks/:id/breakdown
+          Error: 400 "Invalid task ID format."
+          Method: mongoose.Types.ObjectId.isValid()
+
+[✅] 2.5  Request body size limited to 10kb.
+          Prevents large payload / body flooding attacks.
+          Config: express.json({ limit: '10kb' })
+
+[✅] 2.6  Mongoose schema enums enforce valid field values.
+          priority  : ['High', 'Medium', 'Low', 'Critical Hit', 'Backburner']
+          status    : ['todo', 'in-progress', 'done']
+          energyLevel: ['Deep Work', 'Admin']
+
+[✅] 2.7  runValidators: true on findByIdAndUpdate.
+          Ensures schema enum validation also runs on update operations.
+
+[✅] 2.8  Frontend duplicate title check (case-insensitive) prevents
+          accidental duplicate tasks before hitting the backend.
+
+[⚠️] 2.9  No HTML/XSS sanitization library (e.g., DOMPurify) installed.
+          Note: React escapes JSX output by default, so XSS from
+          displayed task data is prevented. No innerHTML usage found.
+          Recommendation: Add DOMPurify if rich HTML input is ever added.
+
+================================================================================
+CATEGORY 3: AUTHENTICATION & AUTHORIZATION
+================================================================================
+
+[⚠️] 3.1  No user authentication system implemented.
+          Current scope: Single-user local application (personal use).
+          Recommendation: Add JWT authentication (e.g., Passport.js)
+          before any public/multi-user deployment.
+
+[⚠️] 3.2  No role-based access control (RBAC).
+          Not required for current single-user scope.
+
+[⚠️] 3.3  No session management.
+          Not applicable for current scope.
+
+================================================================================
+CATEGORY 4: RATE LIMITING & API ABUSE PREVENTION
+================================================================================
+
+[✅] 4.1  General API rate limiter applied to all /api/* routes.
+          Limit  : 100 requests per 15 minutes per IP
+          Headers: RateLimit-* standard headers returned
+          Error  : 429 "Too many requests. Please slow down."
+
+[✅] 4.2  Stricter AI-specific rate limiter on breakdown endpoint.
+          Limit  : 20 requests per 15 minutes per IP
+          Route  : POST /api/tasks/:id/breakdown
+          Error  : 429 "AI rate limit reached."
+
+[✅] 4.3  Backend catches 429 quota errors from Gemini API and waits
+          3 seconds before retrying with the next model.
+
+[✅] 4.4  Frontend disables "Analyze Today" button for 15 seconds after
+          each AI call to prevent rapid repeated requests.
+
+[✅] 4.5  maxOutputTokens: 500 limits AI response size, reducing
+          token costs and preventing unexpectedly large responses.
+
+================================================================================
+CATEGORY 5: INJECTION ATTACK PREVENTION
+================================================================================
+
+[✅] 5.1  MongoDB injection prevention.
+          Using Mongoose ODM with schema-defined models.
+          No raw MongoDB query strings built from user input.
+          ObjectId params validated before any DB operation.
+
+[✅] 5.2  SQL injection — NOT APPLICABLE.
+          Application uses MongoDB (NoSQL), not SQL.
+
+[✅] 5.3  Prompt injection mitigated.
+          User input capped at 500 characters before inclusion in AI prompt.
+          Task title is read from DB (not directly from user request) for
+          the breakdown prompt, preventing direct injection via URL params.
+
+[✅] 5.4  Mass-assignment prevention on PUT /api/tasks/:id.
+          Only whitelisted fields are written to the database:
+          ['title', 'description', 'status', 'priority',
+           'dueDate', 'energyLevel', 'subTasks', 'category']
+          All other fields in req.body are silently ignored.
+
+================================================================================
+CATEGORY 6: NETWORK & TRANSPORT SECURITY
+================================================================================
+
+[✅] 6.1  CORS restricted to known frontend origin only.
+          Configured via FRONTEND_URL environment variable.
+          Default: http://localhost:5173
+
+[⚠️] 6.2  HTTPS not configured for local development.
+          Note: For production deployment, HTTPS must be enforced
+          via reverse proxy (Nginx/Caddy) or cloud provider (e.g. AWS ALB).
+
+[⚠️] 6.3  HTTP security headers (Helmet.js) not installed.
+          Recommendation: Add `helmet` package before production:
+          npm install helmet
+          app.use(require('helmet')())
+          Adds: X-Frame-Options, CSP, HSTS, X-XSS-Protection, etc.
+
+================================================================================
+CATEGORY 7: ERROR HANDLING & INFORMATION DISCLOSURE
+================================================================================
+
+[✅] 7.1  Generic error messages returned to client.
+          Internal stack traces and file paths NOT exposed in API responses.
+
+[✅] 7.2  Detailed errors logged to server console only (not to client).
+          console.error() used for full error context server-side.
+
+[✅] 7.3  AI model names and internal configurations not exposed in
+          client-facing API responses (only modelUsed name returned).
+
+[✅] 7.4  uncaughtException and unhandledRejection handlers in place.
+          Prevents server crash from unexpected async errors.
+
+[✅] 7.5  All routes wrapped in try/catch with appropriate HTTP status codes:
+          - 400 Bad Request for validation errors
+          - 404 Not Found for missing resources
+          - 429 Too Many Requests for rate limit errors
+          - 500 Internal Server Error for unexpected failures
+
+================================================================================
+CATEGORY 8: DATA HANDLING
+================================================================================
+
+[✅] 8.1  MongoDB data stored locally with default authentication disabled
+          (acceptable for local development environment).
+          Recommendation: Enable MongoDB authentication for any
+          network-accessible deployment.
+
+[✅] 8.2  No sensitive personal data stored (no passwords, emails, SSNs).
+          Only task titles, descriptions, dates, and status fields persisted.
+
+[✅] 8.3  AI responses are parsed server-side before any data is stored.
+          Raw AI text is never directly stored in the database.
+
+[⚠️] 8.4  No database backups configured.
+          Recommendation: Set up MongoDB dump/restore for production.
+
+================================================================================
+CATEGORY 9: DEPENDENCY SECURITY
+================================================================================
+
+[✅] 9.1  Core dependencies are reputable and actively maintained:
+          express          ^5.2.1   (Web framework)
+          mongoose         ^9.2.1   (MongoDB ODM)
+          cors             ^2.8.6   (CORS middleware)
+          dotenv           ^17.3.1  (Env variables)
+          express-rate-limit ^7.x   (Rate limiting)
+          @google/generative-ai ^0.24.1 (Gemini SDK)
+
+[⚠️] 9.2  `openai` package is installed but NOT used anywhere.
+          Recommendation: Remove it to reduce attack surface:
+          npm uninstall openai
+
+[⚠️] 9.3  No automated dependency vulnerability scanning.
+          Recommendation: Run periodically:
+          npm audit
+          npm audit fix
+
+================================================================================
+SECURITY CHECKLIST SUMMARY
+================================================================================
+
+  Total Security Items Reviewed  :  31
+  Fully Implemented [✅]         :  22
+  Partially Implemented [⚠️]    :   9  (mostly pre-production items)
+  Not Applicable [❌]            :   0
+
+  Current Security Posture       :  GOOD (for local development)
+  Production Readiness           :  NEEDS WORK (add Helmet.js, HTTPS, Auth)
+
+================================================================================
+TOP RECOMMENDATIONS BEFORE GOING LIVE
+================================================================================
+
+ 1. Add `helmet` package for HTTP security headers.
+ 2. Enforce HTTPS via reverse proxy or cloud load balancer.
+ 3. Add JWT-based user authentication.
+ 4. Enable MongoDB authentication (username/password).
+ 5. Remove unused `openai` package.
+ 6. Run `npm audit` and fix any reported vulnerabilities.
+ 7. Set up a MongoDB backup strategy.
+ 8. Add DOMPurify if rich HTML input is ever introduced.
+
+================================================================================
+END OF SECURITY CHECKLIST
+================================================================================

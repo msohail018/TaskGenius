@@ -497,18 +497,41 @@ app.post('/api/analyze-today', async (req, res) => {
             return res.json({ message: "You're all clear for today! Enjoy your freedom." });
         }
 
-        const taskList = tasks.map(t =>
-            `- [${t.priority}] ${t.title} (Due: ${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'Today'})`
-        ).join('\n');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const taskList = tasks.map(t => {
+            const due = t.dueDate ? new Date(t.dueDate) : null;
+            const isOverdue = due && due < today;
+            let label;
+            if (isOverdue) {
+                const daysPast = Math.max(1, Math.floor((today - due) / (1000 * 60 * 60 * 24)));
+                label = `🔴 OVERDUE (${daysPast} day${daysPast > 1 ? 's' : ''} LATE — MUST DO IMMEDIATELY)`;
+            } else {
+                label = '📅 DUE TODAY';
+            }
+            return `- [${label}] [Priority: ${t.priority}] ${t.title}`;
+        }).join('\n');
+
+        const overdueCount = tasks.filter(t => {
+            const due = t.dueDate ? new Date(t.dueDate) : null;
+            return due && due < today;
+        }).length;
 
         const prompt = `
-You are a strategic project manager.
-My tasks for today:
+You are a no-nonsense productivity coach. Today's date is ${today.toDateString()}.
+
+CRITICAL RULES — you MUST follow these:
+- Any task labeled 🔴 OVERDUE is ALREADY LATE. It is NOT distant. It is NOT upcoming. It is PAST DUE.
+- Do NOT use words like "distant", "upcoming", "future", or "later" for overdue tasks.
+- Overdue tasks are the HIGHEST PRIORITY regardless of their priority label.
+
+My ${tasks.length} active tasks right now (${overdueCount} are already overdue):
 ${taskList}
 
-Write a 2-sentence Daily Execution Briefing:
-1. Summarize the workload intensity.
-2. Tell me specifically where to start for maximum impact.
+Write exactly 2 short, sharp sentences:
+1. State the urgency clearly — name the overdue tasks as LATE and requiring IMMEDIATE action.
+2. Tell me exactly which task to start on RIGHT NOW.
         `.trim();
 
         try {
