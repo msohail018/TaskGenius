@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from './api';
 import Column from './components/Column';
 import NewTaskForm from './components/NewTaskForm';
 import TaskCard from './components/TaskCard';
+import VoiceTask from './components/VoiceTask';
 import useKeyboardShortcuts from './hooks/useKeyboardShortcuts';
-import { PlusIcon, SunIcon, ListBulletIcon, CheckCircleIcon, ClockIcon, SparklesIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, SunIcon, ListBulletIcon, CheckCircleIcon, ClockIcon, SparklesIcon, XMarkIcon, MicrophoneIcon } from '@heroicons/react/24/outline';
+
+// 🔇 Set to true when the Voice-to-Task feature is ready to re-enable
+const VOICE_ENABLED = false;
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -19,13 +23,22 @@ function App() {
   // Unified Tabs for Mobile: 'todo', 'in-progress', 'done'
   const [activeTab, setActiveTab] = useState('todo');
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showVoice, setShowVoice]     = useState(false);
+  const [toast, setToast]             = useState(null); // { msg, type }
+
+  // ── Show a toast (auto-dismiss after 3s) ──
+  const showToast = useCallback((msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
 
   // ── Global Keyboard Shortcuts ──
   useKeyboardShortcuts([
-    { key: 'n', action: () => setShowForm(true),       },
-    { key: 'Escape', action: () => { setShowForm(false); setShowShortcuts(false); }, preventDefault: false },
-    { key: '?', action: () => setShowShortcuts(s => !s) },
-    { key: 'a', action: () => { if (canAnalyze && !analyzing && countdown === 0) handleAnalyzeToday(); } },
+    { key: 'n',      action: () => setShowForm(true) },
+    { key: 'v',      action: () => setShowVoice(true) },
+    { key: 'Escape', action: () => { setShowForm(false); setShowShortcuts(false); setShowVoice(false); }, preventDefault: false },
+    { key: '?',      action: () => setShowShortcuts(s => !s) },
+    { key: 'a',      action: () => { if (canAnalyze && !analyzing && countdown === 0) handleAnalyzeToday(); } },
   ]);
 
   // Fetch tasks
@@ -195,10 +208,11 @@ function App() {
 
             <div className="space-y-2">
               {[
-                { keys: ['N'],           desc: 'Open New Task form' },
-                { keys: ['A'],           desc: "Analyze Today's Work" },
-                { keys: ['?'],           desc: 'Toggle this shortcuts panel' },
-                { keys: ['Esc'],         desc: 'Close any open panel / form' },
+                { keys: ['N'],             desc: 'Open New Task form' },
+                { keys: ['V'],             desc: 'Open Voice-to-Task' },
+                { keys: ['A'],             desc: "Analyze All Tasks" },
+                { keys: ['?'],             desc: 'Toggle this shortcuts panel' },
+                { keys: ['Esc'],           desc: 'Close any open panel / form' },
                 { keys: ['Ctrl', 'Enter'], desc: 'Submit the open form' },
                 { keys: ['Tab'],           desc: 'Navigate between elements' },
                 { keys: ['Enter', 'Space'], desc: 'Activate focused button' },
@@ -269,6 +283,19 @@ function App() {
                   <SparklesIcon className={`h-4 w-4 ${analyzing ? 'animate-spin' : ''}`} />
                   {countdown > 0 ? `Strategizing... (${countdown}s)` : "Analyze All Tasks"}
               </button>
+
+              {/* 🎙 Voice-to-Task Button (hidden until feature is stable) */}
+              {VOICE_ENABLED && (
+                <button
+                  onClick={() => setShowVoice(true)}
+                  aria-label="Create task by voice (press V)"
+                  title="Voice to Task (V)"
+                  className="hidden md:flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md hover:shadow-violet-300 transition-all transform active:scale-95"
+                >
+                  <MicrophoneIcon className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden lg:inline">Voice</span>
+                </button>
+              )}
 
               {/* New Task Button */}
               <button 
@@ -483,11 +510,50 @@ function App() {
       {/* Floating Action Button (Mobile Only) */}
       <button
         onClick={() => setShowForm(true)}
-        className="md:hidden fixed bottom-6 right-6 h-14 w-14 bg-indigo-600 text-white rounded-full shadow-xl shadow-indigo-400/50 flex items-center justify-center hover:bg-indigo-700 transition-transform active:scale-95 z-50 border-2 border-white/20"
+        className="md:hidden fixed bottom-6 right-6 h-14 w-14 bg-indigo-600 text-white rounded-full shadow-xl shadow-indigo-400/50 flex items-center justify-center hover:bg-indigo-700 transition-transform active:scale-95 z-40 border-2 border-white/20"
         aria-label="Create new task"
       >
         <PlusIcon className="h-7 w-7" />
       </button>
+
+      {/* Voice FAB (Mobile) — hidden until feature is stable */}
+      {VOICE_ENABLED && (
+        <button
+          onClick={() => setShowVoice(true)}
+          className="md:hidden fixed bottom-6 left-6 h-14 w-14 bg-gradient-to-br from-violet-600 to-indigo-600 text-white rounded-full shadow-xl shadow-violet-400/50 flex items-center justify-center hover:from-violet-500 hover:to-indigo-500 transition-all active:scale-95 z-40 border-2 border-white/20"
+          aria-label="Create task by voice"
+          title="Voice to Task"
+        >
+          <MicrophoneIcon className="h-6 w-6" />
+        </button>
+      )}
+
+      {/* ── Voice-to-Task Overlay ── */}
+      {showVoice && (
+        <VoiceTask
+          onClose={() => setShowVoice(false)}
+          onTaskCreated={(newTask) => {
+            setTasks(prev => [newTask, ...prev]);
+            setShowVoice(false);
+            showToast('✅ Task Created via Voice!');
+          }}
+        />
+      )}
+
+      {/* ── Toast Notification ── */}
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 rounded-full shadow-2xl text-sm font-bold animate-slide-up flex items-center gap-2 ${
+            toast.type === 'success'
+              ? 'bg-emerald-600 text-white shadow-emerald-900/40'
+              : 'bg-red-600 text-white shadow-red-900/40'
+          }`}
+        >
+          {toast.msg}
+        </div>
+      )}
 
     </div>
   );

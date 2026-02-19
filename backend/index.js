@@ -82,14 +82,21 @@ function cleanJson(text) {
 
 // ─────────────────────────────────────────
 // Multi-Model Fallback Helper
-// Sequence: gemini-2.5-flash → gemini-3.0-flash → gemini-1.5-flash
+// Valid model IDs checked against Gemini API docs (Feb 2026)
+// Sequence: fastest/best → lighter fallbacks
 // ─────────────────────────────────────────
 async function generateWithFallback(prompt, outputJson = false) {
-    const models = ["gemini-2.5-flash", "gemini-3.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"];
+    const models = [
+        "gemini-2.0-flash",          // Best free tier: 15 RPM, 1M TPM
+        "gemini-2.0-flash-lite",     // Lighter: 30 RPM
+        "gemini-1.5-flash",          // Reliable fallback: 15 RPM
+        "gemini-1.5-flash-8b",       // Smallest/fastest: 15 RPM
+    ];
 
-    for (const modelName of models) {
+    for (let i = 0; i < models.length; i++) {
+        const modelName = models[i];
         try {
-            console.log(`🤖 Trying Model: ${modelName}...`);
+            console.log(`🤖 Trying Model [${i+1}/${models.length}]: ${modelName}...`);
             const generationConfig = { maxOutputTokens: 500 };
             if (outputJson) {
                 generationConfig.responseMimeType = "application/json";
@@ -98,31 +105,39 @@ async function generateWithFallback(prompt, outputJson = false) {
             const result = await model.generateContent(prompt);
             const text = result.response.text();
 
-            if (!text) throw new Error("Empty response from AI");
+            if (!text || text.trim() === '') throw new Error("Empty response from AI");
 
             console.log(`✅ Success with ${modelName}`);
             return { text, modelUsed: modelName };
 
         } catch (error) {
+            // Detect HTTP status from multiple error shapes
             let status = "Unknown";
-            if (error.status) status = error.status;
-            else if (error.response?.status) status = error.response.status;
-            else if (error.message.includes('429')) status = "429 (Quota)";
-            else if (error.message.includes('503')) status = "503 (Overloaded)";
-            else if (error.message.includes('404')) status = "404 (Model Not Found)";
+            if (error.status)                         status = String(error.status);
+            else if (error.response?.status)          status = String(error.response.status);
+            else if (error.message?.includes('429'))  status = "429";
+            else if (error.message?.includes('503'))  status = "503";
+            else if (error.message?.includes('404'))  status = "404";
+            else if (error.message?.includes('400'))  status = "400";
 
-            console.error(`❌ Model [${modelName}] Failed | Status: ${status} | Error: ${error.message}`);
+            console.error(`❌ [${modelName}] Failed | Status: ${status} | ${error.message?.slice(0,120)}`);
 
-            if (String(status).includes('429')) {
-                console.warn(`🛑 QUOTA HIT on ${modelName}. Waiting 3s...`);
-                await new Promise(r => setTimeout(r, 3000));
-            } else {
-                await new Promise(r => setTimeout(r, 1000));
+            const isLast = i === models.length - 1;
+            if (isLast) {
+                console.error("❌ All AI models exhausted.");
+                throw new Error("All AI models exhausted. Please try again in a minute.");
             }
 
-            if (modelName === models[models.length - 1]) {
-                console.error("❌ All AI models exhausted.");
-                throw new Error("All AI models exhausted. Please try again later.");
+            // Back-off before next model
+            if (status === "429") {
+                console.warn(`🛑 QUOTA HIT on ${modelName} → waiting 5s before next model...`);
+                await new Promise(r => setTimeout(r, 5000));
+            } else if (status === "503") {
+                console.warn(`⏳ OVERLOADED on ${modelName} → waiting 2s...`);
+                await new Promise(r => setTimeout(r, 2000));
+            } else {
+                // 404 (wrong model name), 400, unknown — skip immediately
+                await new Promise(r => setTimeout(r, 300));
             }
         }
     }
