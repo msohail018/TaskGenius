@@ -2,17 +2,41 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const Task = require('./models/Task');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ── Security: Body size limit (prevents large payload attacks) ──
+app.use(express.json({ limit: '10kb' }));
+
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true
 }));
-app.use(express.json());
+
+// ── Security: Rate Limiting ──
+// General API limiter: 100 req/15min per IP
+const generalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please slow down.' }
+});
+
+// Stricter limiter for AI endpoints: 20 req/15min per IP
+const aiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'AI rate limit reached. Please wait before making more AI requests.' }
+});
+
+app.use('/api', generalLimiter);
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
@@ -30,7 +54,7 @@ if (!mongoURI || !mongoURI.startsWith('mongodb')) {
     console.warn("⚠️ Invalid MONGODB_URI detected. Falling back to local default.");
     mongoURI = "mongodb://127.0.0.1:27017/taskgen";
 }
-console.log("Connecting to MongoDB at", mongoURI);
+console.log("Connecting to MongoDB..."); // URI hidden for security
 mongoose.connect(mongoURI, { serverSelectionTimeoutMS: 5000 })
   .then(() => console.log('MongoDB connected successfully'))
   .catch((err) => {
@@ -61,7 +85,7 @@ function cleanJson(text) {
 // Sequence: gemini-2.5-flash → gemini-3.0-flash → gemini-1.5-flash
 // ─────────────────────────────────────────
 async function generateWithFallback(prompt, outputJson = false) {
-    const models = ["gemini-2.5-flash", "gemini-3.0-flash", "gemini-1.5-flash"];
+    const models = ["gemini-2.5-flash", "gemini-3.0-flash", "gemini-1.5-flash", "gemini-2.0-flash-lite"];
 
     for (const modelName of models) {
         try {
@@ -171,9 +195,13 @@ app.post('/api/tasks', async (req, res) => {
             if (!manualData.title || !manualData.title.trim()) {
                 return res.status(400).json({ error: "Task title is required." });
             }
+            // Enforce title length limit
+            if (manualData.title.trim().length > 200) {
+                return res.status(400).json({ error: "Task title must be under 200 characters." });
+            }
             const newTask = new Task({
-                title: manualData.title,
-                description: manualData.description,
+                title: manualData.title.trim().substring(0, 200),
+                description: manualData.description?.substring(0, 1000) || '',
                 priority: manualData.priority || 'Medium',
                 dueDate: manualData.dueDate,
                 energyLevel: 'Admin',
@@ -187,9 +215,13 @@ app.post('/api/tasks', async (req, res) => {
             return res.status(201).json(taskObj);
         }
 
-        // ── MAGIC MODE ──
+        // ── MAGIC MODE (apply stricter AI rate limit) ──
         if (!text || !text.trim()) {
             return res.status(400).json({ error: "Magic text prompt is required." });
+        }
+        // Security: cap magic text to prevent prompt injection / large payloads
+        if (text.trim().length > 500) {
+            return res.status(400).json({ error: "Magic text is too long. Keep it under 500 characters." });
         }
         if (!process.env.GEMINI_API_KEY) {
             return res.status(500).json({ error: "No GEMINI_API_KEY configured on server." });
@@ -265,8 +297,21 @@ Return ONLY this JSON object. No markdown. No backticks. No extra text:
 // PUT update task
 app.put('/api/tasks/:id', async (req, res) => {
     try {
-        const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true }).lean();
-        if (updatedTask) updatedTask.urgencyScore = calculateUrgency(updatedTask);
+        // Security: validate ObjectId format to prevent injection / CastError crashes
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ error: 'Invalid task ID format.' });
+        }
+        // Security: whitelist-only update — prevent mass-assignment / field injection
+        const allowedFields = ['title', 'description', 'status', 'priority', 'dueDate', 'energyLevel', 'subTasks', 'category'];
+        const updateData = {};
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updateData[field] = req.body[field];
+            }
+        }
+        const updatedTask = await Task.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true }).lean();
+        if (!updatedTask) return res.status(404).json({ error: 'Task not found.' });
+        updatedTask.urgencyScore = calculateUrgency(updatedTask);
         res.json(updatedTask);
     } catch (error) {
         console.error("Update task error:", error);
@@ -277,7 +322,12 @@ app.put('/api/tasks/:id', async (req, res) => {
 // DELETE task
 app.delete('/api/tasks/:id', async (req, res) => {
     try {
-        await Task.findByIdAndDelete(req.params.id);
+        // Security: validate ObjectId format
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ error: 'Invalid task ID format.' });
+        }
+        const deleted = await Task.findByIdAndDelete(req.params.id);
+        if (!deleted) return res.status(404).json({ error: 'Task not found.' });
         res.json({ message: 'Task deleted' });
     } catch (error) {
         console.error("Delete task error:", error);
@@ -285,9 +335,13 @@ app.delete('/api/tasks/:id', async (req, res) => {
     }
 });
 
-// POST generate subtasks (Breakdown)
-app.post('/api/tasks/:id/breakdown', async (req, res) => {
+// POST generate subtasks (Breakdown) — apply AI rate limiter
+app.post('/api/tasks/:id/breakdown', aiLimiter, async (req, res) => {
     try {
+        // Security: validate ObjectId format
+        if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+            return res.status(400).json({ error: 'Invalid task ID format.' });
+        }
         const task = await Task.findById(req.params.id);
         if (!task) return res.status(404).json({ error: 'Task not found' });
         if (!task.title) return res.status(400).json({ error: 'Task title is missing.' });
