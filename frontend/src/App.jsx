@@ -61,29 +61,21 @@ function App() {
   const handleAnalyzeToday = async () => {
     if (analyzing || countdown > 0) return;
 
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-
-    // Include BOTH today's tasks AND overdue tasks (anything not done with a past/today due date)
+    // Include ALL pending tasks with a due date — overdue, today, AND future
     const relevantTasks = tasks.filter(t => {
         if (t.status === 'done') return false;
         if (!t.dueDate) return false;
-        const due = new Date(t.dueDate);
-        const userTimezoneOffset = due.getTimezoneOffset() * 60000;
-        const localDue = new Date(due.getTime() + userTimezoneOffset);
-        // Include if due today OR overdue (past today)
-        return localDue <= endOfToday;
+        return true;
     });
 
     if (relevantTasks.length === 0) {
-        alert("No active tasks due today or overdue to analyze!");
+        alert("No pending tasks with a due date found to analyze!");
         return;
     }
 
     setAnalyzing(true);
     setCountdown(15);
-    
+
     const timer = setInterval(() => {
         setCountdown(prev => {
             if (prev <= 1) { clearInterval(timer); return 0; }
@@ -139,19 +131,9 @@ function App() {
     </button>
   );
 
-  // Helper: Button enabled if there are today's tasks OR overdue tasks (not done)
+  // Helper: Button enabled if ANY non-done task with a dueDate exists
   const hasTasksForToday = () => {
-      const now = new Date();
-      const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-
-      return tasks.some(t => {
-          if (!t.dueDate || t.status === 'done') return false;
-          const due = new Date(t.dueDate);
-          const userTimezoneOffset = due.getTimezoneOffset() * 60000;
-          const localDue = new Date(due.getTime() + userTimezoneOffset);
-          // Enable for today AND overdue tasks
-          return localDue <= endOfToday;
-      });
+      return tasks.some(t => t.status !== 'done' && t.dueDate);
   };
 
   const canAnalyze = hasTasksForToday();
@@ -276,7 +258,7 @@ function App() {
               <button
                 onClick={handleAnalyzeToday}
                 disabled={analyzing || countdown > 0 || !canAnalyze}
-                aria-label={!canAnalyze ? "Analyze — no active tasks due today or overdue" : "Analyze Today & Overdue tasks (press A)"}
+                aria-label={!canAnalyze ? "Analyze — no pending tasks with a due date" : "Analyze All Tasks (press A)"}
                 aria-busy={analyzing}
                 className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold border transition-all ${
                     countdown > 0 || !canAnalyze
@@ -285,7 +267,7 @@ function App() {
                 }`}
               >
                   <SparklesIcon className={`h-4 w-4 ${analyzing ? 'animate-spin' : ''}`} />
-                  {countdown > 0 ? `Strategizing... (${countdown}s)` : "Analyze Today & Overdue"}
+                  {countdown > 0 ? `Strategizing... (${countdown}s)` : "Analyze All Tasks"}
               </button>
 
               {/* New Task Button */}
@@ -323,7 +305,7 @@ function App() {
                 }`}
             >
                 <SparklesIcon className={`h-4 w-4 ${analyzing ? 'animate-spin' : ''}`} />
-                {countdown > 0 ? `Strategizing... (${countdown}s)` : "✨ Analyze Today & Overdue"}
+                {countdown > 0 ? `Strategizing... (${countdown}s)` : "✨ Analyze All Tasks"}
             </button>
         </div>
 

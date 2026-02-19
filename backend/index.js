@@ -499,39 +499,48 @@ app.post('/api/analyze-today', async (req, res) => {
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const endOfToday = new Date(today);
+        endOfToday.setHours(23, 59, 59, 999);
 
-        const taskList = tasks.map(t => {
-            const due = t.dueDate ? new Date(t.dueDate) : null;
-            const isOverdue = due && due < today;
-            let label;
-            if (isOverdue) {
+        // Categorize all tasks into 3 buckets
+        const overdueTasks   = [];
+        const todayTasks     = [];
+        const upcomingTasks  = [];
+
+        tasks.forEach(t => {
+            const due = new Date(t.dueDate);
+            if (due < today) {
                 const daysPast = Math.max(1, Math.floor((today - due) / (1000 * 60 * 60 * 24)));
-                label = `🔴 OVERDUE (${daysPast} day${daysPast > 1 ? 's' : ''} LATE — MUST DO IMMEDIATELY)`;
+                overdueTasks.push(`  🔴 OVERDUE ${daysPast}d LATE — [${t.priority}] ${t.title}`);
+            } else if (due <= endOfToday) {
+                todayTasks.push(`  📅 TODAY — [${t.priority}] ${t.title}`);
             } else {
-                label = '📅 DUE TODAY';
+                const daysAhead = Math.ceil((due - endOfToday) / (1000 * 60 * 60 * 24));
+                upcomingTasks.push(`  🗓 IN ${daysAhead} DAY${daysAhead > 1 ? 'S' : ''} — [${t.priority}] ${t.title}`);
             }
-            return `- [${label}] [Priority: ${t.priority}] ${t.title}`;
-        }).join('\n');
+        });
 
-        const overdueCount = tasks.filter(t => {
-            const due = t.dueDate ? new Date(t.dueDate) : null;
-            return due && due < today;
-        }).length;
+        const sections = [];
+        if (overdueTasks.length)  sections.push(`OVERDUE (${overdueTasks.length}):\n${overdueTasks.join('\n')}`);
+        if (todayTasks.length)    sections.push(`DUE TODAY (${todayTasks.length}):\n${todayTasks.join('\n')}`);
+        if (upcomingTasks.length) sections.push(`UPCOMING (${upcomingTasks.length}):\n${upcomingTasks.join('\n')}`);
+
+        const taskDigest = sections.join('\n\n');
 
         const prompt = `
-You are a no-nonsense productivity coach. Today's date is ${today.toDateString()}.
+You are a sharp, no-nonsense productivity coach. Today is ${today.toDateString()}.
 
-CRITICAL RULES — you MUST follow these:
-- Any task labeled 🔴 OVERDUE is ALREADY LATE. It is NOT distant. It is NOT upcoming. It is PAST DUE.
-- Do NOT use words like "distant", "upcoming", "future", or "later" for overdue tasks.
-- Overdue tasks are the HIGHEST PRIORITY regardless of their priority label.
+RULES — follow strictly:
+- 🔴 OVERDUE tasks are ALREADY LATE. Call them LATE or OVERDUE. NEVER say "distant" or "upcoming" for these.
+- 📅 TODAY tasks must be done before midnight.
+- 🗓 UPCOMING tasks have upcoming deadlines but should be noted for planning.
 
-My ${tasks.length} active tasks right now (${overdueCount} are already overdue):
-${taskList}
+Here are all active tasks:
+${taskDigest}
 
-Write exactly 2 short, sharp sentences:
-1. State the urgency clearly — name the overdue tasks as LATE and requiring IMMEDIATE action.
-2. Tell me exactly which task to start on RIGHT NOW.
+Write exactly 2 punchy sentences:
+1. Assess the urgency \u2014 highlight any overdue/today tasks that need immediate action.
+2. Name the single highest-priority task the user should start RIGHT NOW.
         `.trim();
 
         try {
