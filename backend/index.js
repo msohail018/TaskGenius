@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const Task = require('./models/Task');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -594,19 +595,19 @@ Write exactly 2 punchy sentences:
     }
 });
 
-const path = require('path');
+
 
 // ── Serve Frontend Static Files (for Deployment) ──
 // When deployed, we serve the frontend/dist folder from the backend
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Wildcard route to handle React Router (Single Page App)
 app.get('*', (req, res) => {
     // If request is not for /api, serve the frontend
     if (!req.url.startsWith('/api')) {
-        res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
     }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Server running on 0.0.0.0:${PORT}`));
 
