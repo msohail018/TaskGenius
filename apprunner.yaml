@@ -3,12 +3,12 @@ runtime: nodejs18
 build:
   commands:
     build:
-      - npm install
-      - npm run deploy:build
+      - npm run install:all
+      - npm run build:frontend
 run:
   command: npm start
   network:
-    port: 5000
+    port: 8080
   env:
     - name: NODE_ENV
       value: production

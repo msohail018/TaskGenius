@@ -7,7 +7,13 @@ const Task = require('./models/Task');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
+
+console.log("🚀 Starting TaskGenius Backend...");
+console.log("📡 Mode:", process.env.NODE_ENV || 'development');
+if (!process.env.MONGODB_URI) console.warn("⚠️ MONGODB_URI is missing!");
+if (!process.env.OPENROUTER_API_KEY) console.warn("⚠️ OPENROUTER_API_KEY is missing!");
+
 
 // ── Security: Body size limit (prevents large payload attacks) ──
 app.use(express.json({ limit: '10kb' }));
