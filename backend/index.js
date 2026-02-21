@@ -9,6 +9,11 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Start server immediately to pass AWS health checks
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 TaskGenius Backend listening on 0.0.0.0:${PORT}`);
+});
+
 console.log("🚀 Starting TaskGenius Backend...");
 console.log("📡 Mode:", process.env.NODE_ENV || 'development');
 if (!process.env.MONGODB_URI) console.warn("⚠️ MONGODB_URI is missing!");
@@ -615,5 +620,5 @@ app.get('*', (req, res) => {
     }
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`Server running on 0.0.0.0:${PORT}`));
+
 
