@@ -231,7 +231,7 @@ app.post('/api/tasks', async (req, res) => {
                 description: manualData.description?.substring(0, 1000) || '',
                 priority: manualData.priority || 'Medium',
                 dueDate: manualData.dueDate,
-                energyLevel: 'Admin',
+
                 category: 'Upcoming',
                 status: 'todo',
                 subTasks: []
@@ -275,7 +275,6 @@ Return ONLY this JSON object. No markdown. No backticks. No extra text:
   "title": "short task title",
   "description": "brief details",
   "priority": "High",
-  "energyLevel": "Admin",
   "dueDate": "YYYY-MM-DD",
   "subTasks": ["step 1", "step 2", "step 3"]
 }
@@ -300,7 +299,7 @@ Return ONLY this JSON object. No markdown. No backticks. No extra text:
                 title: analysis.title,
                 description: analysis.description,
                 priority: analysis.priority || 'Medium',
-                energyLevel: ['Deep Work', 'Admin'].includes(analysis.energyLevel) ? analysis.energyLevel : 'Admin',
+
                 category: 'Upcoming',
                 dueDate,
                 status: 'todo',
@@ -333,7 +332,7 @@ app.put('/api/tasks/:id', async (req, res) => {
             return res.status(400).json({ error: 'Invalid task ID format.' });
         }
         // Security: whitelist-only update — prevent mass-assignment / field injection
-        const allowedFields = ['title', 'description', 'status', 'priority', 'dueDate', 'energyLevel', 'subTasks', 'category'];
+        const allowedFields = ['title', 'description', 'status', 'priority', 'dueDate', 'subTasks', 'category'];
         const updateData = {};
         for (const field of allowedFields) {
             if (req.body[field] !== undefined) {

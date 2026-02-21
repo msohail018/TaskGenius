@@ -20,7 +20,9 @@ const useKeyboardShortcuts = (shortcuts) => {
 
             // If ctrl is required, allow it even while typing
             // If ctrl is NOT required, skip while typing
-            const skipWhenTyping = !shortcut.ctrl && isTyping;
+            // Escape always fires — even inside input/textarea
+            const isEscape = shortcut.key.toLowerCase() === 'escape';
+            const skipWhenTyping = !shortcut.ctrl && isTyping && !isEscape;
 
             if (keyMatch && ctrlMatch && shiftMatch && !skipWhenTyping) {
                 // Only prevent default for shortcuts that need it

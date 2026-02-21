@@ -27,10 +27,7 @@ const TaskSchema = new mongoose.Schema({
     enum: ['High', 'Medium', 'Low', 'Critical Hit', 'Backburner'],
     default: 'Medium',
   },
-  energyLevel: {
-    type: String,
-    enum: ['Deep Work', 'Admin'],
-  },
+
   status: {
     type: String,
     enum: ['todo', 'in-progress', 'done'],
