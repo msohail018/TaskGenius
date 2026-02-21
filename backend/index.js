@@ -300,7 +300,7 @@ Return ONLY this JSON object. No markdown. No backticks. No extra text:
                 title: analysis.title,
                 description: analysis.description,
                 priority: analysis.priority || 'Medium',
-                energyLevel: analysis.energyLevel || 'Admin',
+                energyLevel: ['Deep Work', 'Admin'].includes(analysis.energyLevel) ? analysis.energyLevel : 'Admin',
                 category: 'Upcoming',
                 dueDate,
                 status: 'todo',
