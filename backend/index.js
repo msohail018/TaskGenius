@@ -38,7 +38,7 @@ const aiLimiter = rateLimit({
 
 app.use('/api', generalLimiter);
 
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require("openai");
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err);
@@ -61,8 +61,15 @@ mongoose.connect(mongoURI, { serverSelectionTimeoutMS: 5000 })
       console.error('MongoDB Connection Error:', err.message);
   });
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Initialize OpenRouter (OpenAI-compatible SDK)
+const openrouter = new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    apiKey: process.env.OPENROUTER_API_KEY,
+    defaultHeaders: {
+        "HTTP-Referer": "http://localhost:5173",
+        "X-Title": "TaskGenius V2"
+    }
+});
 
 // ─────────────────────────────────────────
 // Helper: Clean AI text to extract raw JSON
@@ -81,29 +88,36 @@ function cleanJson(text) {
 }
 
 // ─────────────────────────────────────────
-// Multi-Model Fallback Helper
-// Valid model IDs checked against Gemini API docs (Feb 2026)
-// Sequence: fastest/best → lighter fallbacks
+// Multi-Model Fallback Helper (OpenRouter)
+// Free-tier models, fastest → reliable fallbacks
 // ─────────────────────────────────────────
 async function generateWithFallback(prompt, outputJson = false) {
     const models = [
-        "gemini-2.0-flash",          // Best free tier: 15 RPM, 1M TPM
-        "gemini-2.0-flash-lite",     // Lighter: 30 RPM
-        "gemini-1.5-flash",          // Reliable fallback: 15 RPM
-        "gemini-1.5-flash-8b",       // Smallest/fastest: 15 RPM
+        "google/gemma-3-4b-it:free",                        // #1 First Responder — fastest, ~10 req/min
+        "meta-llama/llama-3.2-3b-instruct:free",            // #2 Reliable Backup — high uptime, very fast
+        "mistralai/mistral-small-3.1-24b-instruct:free",    // #3 Smart Mid-Tier — smarter logic
+        "google/gemma-3-12b-it:free",                       // #4 Smart Alternative — generous limits
+        "meta-llama/llama-3.3-70b-instruct:free",           // #5 Powerhouse — rate limited, last resort
+        "microsoft/phi-3-medium-128k-instruct:free",        // #6 Final fallback
     ];
 
     for (let i = 0; i < models.length; i++) {
         const modelName = models[i];
         try {
             console.log(`🤖 Trying Model [${i+1}/${models.length}]: ${modelName}...`);
-            const generationConfig = { maxOutputTokens: 500 };
+
+            const messages = [{ role: "user", content: prompt }];
+            const requestBody = {
+                model: modelName,
+                messages,
+                max_tokens: 500,
+            };
             if (outputJson) {
-                generationConfig.responseMimeType = "application/json";
+                requestBody.response_format = { type: "json_object" };
             }
-            const model = genAI.getGenerativeModel({ model: modelName, generationConfig });
-            const result = await model.generateContent(prompt);
-            const text = result.response.text();
+
+            const completion = await openrouter.chat.completions.create(requestBody);
+            const text = completion.choices?.[0]?.message?.content;
 
             if (!text || text.trim() === '') throw new Error("Empty response from AI");
 
@@ -111,7 +125,6 @@ async function generateWithFallback(prompt, outputJson = false) {
             return { text, modelUsed: modelName };
 
         } catch (error) {
-            // Detect HTTP status from multiple error shapes
             let status = "Unknown";
             if (error.status)                         status = String(error.status);
             else if (error.response?.status)          status = String(error.response.status);
@@ -136,7 +149,6 @@ async function generateWithFallback(prompt, outputJson = false) {
                 console.warn(`⏳ OVERLOADED on ${modelName} → waiting 2s...`);
                 await new Promise(r => setTimeout(r, 2000));
             } else {
-                // 404 (wrong model name), 400, unknown — skip immediately
                 await new Promise(r => setTimeout(r, 300));
             }
         }
