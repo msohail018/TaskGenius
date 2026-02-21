@@ -25,7 +25,7 @@ app.use(express.json({ limit: '10kb' }));
 
 // Middleware
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL || '*',
     credentials: true
 }));
 
@@ -78,7 +78,6 @@ const openrouter = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
     apiKey: process.env.OPENROUTER_API_KEY,
     defaultHeaders: {
-        "HTTP-Referer": "http://localhost:5173",
         "X-Title": "TaskGenius V2"
     }
 });
@@ -610,13 +609,13 @@ Write exactly 2 punchy sentences:
 
 // ── Serve Frontend Static Files (for Deployment) ──
 // When deployed, we serve the frontend/dist folder from the backend
-app.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // Wildcard route to handle React Router (Single Page App)
 app.get('*', (req, res) => {
     // If request is not for /api, serve the frontend
     if (!req.url.startsWith('/api')) {
-        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+        res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
     }
 });
 
