@@ -594,4 +594,19 @@ Write exactly 2 punchy sentences:
     }
 });
 
+const path = require('path');
+
+// ── Serve Frontend Static Files (for Deployment) ──
+// When deployed, we serve the frontend/dist folder from the backend
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
+
+// Wildcard route to handle React Router (Single Page App)
+app.get('*', (req, res) => {
+    // If request is not for /api, serve the frontend
+    if (!req.url.startsWith('/api')) {
+        res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+    }
+});
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
