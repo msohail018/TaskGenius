@@ -1,0 +1,4 @@
+[AppRunner] Deployment with ID : f3eb68f6bbcf4ef8bf4e78ecd28ca2ac started. Triggering event : SERVICE_CREATE
+[AppRunner] Deployment Artifact: [Repo Type: Source], [Repository: https://github.com/msohail018/TaskGenius], [Branch: main], [SourceDirectory: /]
+[AppRunner] Failed to create pipeline for automatic deployments.
+[AppRunner] Deployment with ID : f3eb68f6bbcf4ef8bf4e78ecd28ca2ac failed. Failure reason : Failed to access source code.

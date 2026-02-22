@@ -1,0 +1,210 @@
+[Build] Sending build context to Docker daemon  345.6kB
+
+[Build] Step 1/6 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35 AS pre-build-stage
+
+[Build]  ---> 2e99f2654c4d
+
+[Build] Step 2/6 : COPY . /app
+
+[Build]  ---> Using cache
+
+[Build]  ---> 54457016ca0c
+
+[Build] Step 3/6 : WORKDIR /app//backend
+
+[Build]  ---> Using cache
+
+[Build]  ---> b8d3c351774c
+
+[Build] Step 4/6 : FROM pre-build-stage as build-stage
+
+[Build]  ---> b8d3c351774c
+
+[Build] Step 5/6 : WORKDIR /app//backend
+
+[Build]  ---> Running in abf27b869fa5
+
+[Build] Removing intermediate container abf27b869fa5
+
+[Build]  ---> 2c7e958c8b1d
+
+[Build] Step 6/6 : RUN npm install
+
+[Build]  ---> Running in ada3200efcb8
+
+[Build] added 89 packages, and audited 90 packages in 2s
+
+[Build] 26 packages are looking for funding
+
+[Build]   run `npm fund` for details
+
+[Build] found 0 vulnerabilities
+
+[Build] [91mnpm notice
+
+[Build] npm notice New major version of npm available! 10.9.4 -> 11.10.1
+
+[Build] npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.10.1
+
+[Build] npm notice To update run: npm install -g npm@11.10.1
+
+[Build] npm notice
+
+[Build] [0mRemoving intermediate container ada3200efcb8
+
+[Build]  ---> 5623f38bcec4
+
+[Build] Successfully built 5623f38bcec4
+
+[PreRun] Sending build context to Docker daemon  345.6kB
+
+[PreRun] Step 1/10 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35 AS pre-build-stage
+
+[PreRun]  ---> 2e99f2654c4d
+
+[PreRun] Step 2/10 : COPY . /app
+
+[PreRun]  ---> Using cache
+
+[PreRun]  ---> 54457016ca0c
+
+[PreRun] Step 3/10 : WORKDIR /app//backend
+
+[PreRun]  ---> Using cache
+
+[PreRun]  ---> b8d3c351774c
+
+[PreRun] Step 4/10 : FROM pre-build-stage as build-stage
+
+[PreRun]  ---> b8d3c351774c
+
+[PreRun] Step 5/10 : WORKDIR /app//backend
+
+[PreRun]  ---> Using cache
+
+[PreRun]  ---> 2c7e958c8b1d
+
+[PreRun] Step 6/10 : RUN npm install
+
+[PreRun]  ---> Using cache
+
+[PreRun]  ---> 5623f38bcec4
+
+[PreRun] Step 7/10 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22:uuid-nodejs22-20251118-203652-35 AS packaging-stage
+
+[PreRun] uuid-nodejs22-20251118-203652-35: Pulling from awsfusionruntime-nodejs22
+
+[PreRun] 1c7de4eb5ced: Already exists
+
+[PreRun] 3651f8cffd51: Already exists
+
+[PreRun] ac5e3bc97a2f: Pulling fs layer
+
+[PreRun] ac5e3bc97a2f: Verifying Checksum
+
+[PreRun] ac5e3bc97a2f: Download complete
+
+[PreRun] ac5e3bc97a2f: Pull complete
+
+[PreRun] Digest: sha256:9138dec8710db0162ac0a6bf676f65af0437bd485aaf95afa8dd2bab63fae994
+
+[PreRun] Status: Downloaded newer image for 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22:uuid-nodejs22-20251118-203652-35
+
+[PreRun]  ---> d43640bac142
+
+[PreRun] Step 8/10 : COPY --from=build-stage /app /app
+
+[PreRun]  ---> f33d0a1fb9a0
+
+[PreRun] Step 9/10 : WORKDIR /app//backend
+
+[PreRun]  ---> Running in eb018a018d74
+
+[PreRun] Removing intermediate container eb018a018d74
+
+[PreRun]  ---> f340fd17d633
+
+[PreRun] Step 10/10 : EXPOSE 5000
+
+[PreRun]  ---> Running in 43b4d050e939
+
+[PreRun] Removing intermediate container 43b4d050e939
+
+[PreRun]  ---> c4bea6cd9f3a
+
+[PreRun] Successfully built c4bea6cd9f3a
+
+[PreRun] Successfully tagged application-image:latest
+
+[PostBuild] Sending build context to Docker daemon  345.6kB
+
+[PostBuild] Step 1/12 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35 AS pre-build-stage
+
+[PostBuild]  ---> 2e99f2654c4d
+
+[PostBuild] Step 2/12 : COPY . /app
+
+[PostBuild]  ---> Using cache
+
+[PostBuild]  ---> 54457016ca0c
+
+[PostBuild] Step 3/12 : WORKDIR /app//backend
+
+[PostBuild]  ---> Using cache
+
+[PostBuild]  ---> b8d3c351774c
+
+[PostBuild] Step 4/12 : FROM pre-build-stage as build-stage
+
+[PostBuild]  ---> b8d3c351774c
+
+[PostBuild] Step 5/12 : WORKDIR /app//backend
+
+[PostBuild]  ---> Using cache
+
+[PostBuild]  ---> 2c7e958c8b1d
+
+[PostBuild] Step 6/12 : RUN npm install
+
+[PostBuild]  ---> Using cache
+
+[PostBuild]  ---> 5623f38bcec4
+
+[PostBuild] Step 7/12 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22:uuid-nodejs22-20251118-203652-35 AS packaging-stage
+
+[PostBuild]  ---> d43640bac142
+
+[PostBuild] Step 8/12 : COPY --from=build-stage /app /app
+
+[PostBuild]  ---> Using cache
+
+[PostBuild]  ---> f33d0a1fb9a0
+
+[PostBuild] Step 9/12 : WORKDIR /app//backend
+
+[PostBuild]  ---> Using cache
+
+[PostBuild]  ---> f340fd17d633
+
+[PostBuild] Step 10/12 : EXPOSE 5000
+
+[PostBuild]  ---> Using cache
+
+[PostBuild]  ---> c4bea6cd9f3a
+
+[PostBuild] Step 11/12 : FROM build-stage AS post-build-stage
+
+[PostBuild]  ---> 5623f38bcec4
+
+[PostBuild] Step 12/12 : WORKDIR /app//backend
+
+[PostBuild]  ---> Running in 45ca53967c0c
+
+[PostBuild] Removing intermediate container 45ca53967c0c
+
+[PostBuild]  ---> 9235f99a40fa
+
+[PostBuild] Successfully built 9235f99a40fa
+
+[AppRunner] Successfully built your application source code.
+[AppRunner] Failed to deploy your application source code.

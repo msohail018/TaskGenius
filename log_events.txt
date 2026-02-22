@@ -1,0 +1,32 @@
+[AppRunner] Health check failed on protocol `TCP` [Port: '5000']. Check your configured port number. For more information, see the application logs.
+[AppRunner] Deployment with ID : 1f8df7e37b234a56ab86e6c399ce7145 failed. Failure reason : Health check failed.
+[AppRunner] Deployment with ID : 1cd7ffefe9d5471c8d583bed3f3a97dd started. Triggering event : SERVICE_UPDATE
+[AppRunner] Deployment Artifact: [Repo Type: Source], [Repository: https://github.com/msohail018/TaskGenius], [Branch: main], [SourceDirectory: /backend]
+[AppRunner] Creating pipeline for automatic deployments.
+[AppRunner] Successfully created pipeline for automatic deployments.
+[AppRunner] Pulling source code from GITHUB Repository ( https://github.com/msohail018/TaskGenius ).
+[AppRunner] Successfully pulled your application source code.
+[AppRunner] Successfully validate configuration file.
+[AppRunner] Starting source code build.
+[AppRunner] Failed to build your application source code. Reason: Failed to execute 'build' command.
+[AppRunner] Deployment with ID : 1cd7ffefe9d5471c8d583bed3f3a97dd failed.
+[AppRunner] Deployment with ID : 20fd2b5b2a344e3085cdb6466e7c1417 started. Triggering event : SERVICE_UPDATE
+[AppRunner] Deployment Artifact: [Repo Type: Source], [Repository: https://github.com/msohail018/TaskGenius], [Branch: main], [SourceDirectory: /backend]
+[AppRunner] Creating pipeline for automatic deployments.
+[AppRunner] Successfully created pipeline for automatic deployments.
+[AppRunner] Pulling source code from GITHUB Repository ( https://github.com/msohail018/TaskGenius ).
+[AppRunner] Successfully pulled your application source code.
+[AppRunner] Successfully validate configuration file.
+[AppRunner] Starting source code build.
+[AppRunner] Failed to build your application source code. Reason: Failed to execute 'build' command.
+[AppRunner] Deployment with ID : 20fd2b5b2a344e3085cdb6466e7c1417 failed.
+[AppRunner] Deployment with ID : 3d0046941ab0460dabcd75df078b3817 started. Triggering event : SERVICE_UPDATE
+[AppRunner] Deployment Artifact: [Repo Type: Source], [Repository: https://github.com/msohail018/TaskGenius], [Branch: main], [SourceDirectory: /backend]
+[AppRunner] Creating pipeline for automatic deployments.
+[AppRunner] Successfully created pipeline for automatic deployments.
+[AppRunner] Pulling source code from GITHUB Repository ( https://github.com/msohail018/TaskGenius ).
+[AppRunner] Successfully pulled your application source code.
+[AppRunner] Successfully validate configuration file.
+[AppRunner] Starting source code build.
+[AppRunner] Failed to build your application source code. Reason: Failed to execute 'build' command.
+[AppRunner] Deployment with ID : 3d0046941ab0460dabcd75df078b3817 failed.

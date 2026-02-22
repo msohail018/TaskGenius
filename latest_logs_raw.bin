@@ -1,0 +1,305 @@
+{
+    "events": [
+        {
+            "timestamp": 1771676208475,
+            "message": "[AppRunner] Starting to deploy your application source code.",
+            "ingestionTime": 1771676209169
+        },
+        {
+            "timestamp": 1771676273223,
+            "message": "[AppRunner] Starting to build your application source code.",
+            "ingestionTime": 1771676273689
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] Sending build context to Docker daemon  346.1kB\r\r\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] Step 1/3 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35 AS pre-build-stage\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] uuid-nodejs22-20251118-203652-35: Pulling from awsfusionruntime-nodejs22-build\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 1c7de4eb5ced: Pulling fs layer\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 3651f8cffd51: Pulling fs layer\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 0f2554558521: Pulling fs layer\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 0f2554558521: Verifying Checksum\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 0f2554558521: Download complete\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 1c7de4eb5ced: Verifying Checksum\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 1c7de4eb5ced: Download complete\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 3651f8cffd51: Verifying Checksum\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 3651f8cffd51: Download complete\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 1c7de4eb5ced: Pull complete\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 3651f8cffd51: Pull complete\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] 0f2554558521: Pull complete\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] Digest: sha256:004c3e6b4126ffa0762d042a41f7c3a819629fd0bc97d0b68cf4b50240e53c2e\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] Status: Downloaded newer image for 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild]  ---> 2e99f2654c4d\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] Step 2/3 : COPY . /app\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild]  ---> ff2a6a3d3813\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] Step 3/3 : WORKDIR /app//\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild]  ---> Running in 7e8cba3fc0c2\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] Removing intermediate container 7e8cba3fc0c2\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild]  ---> b084c6c3aaa6\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350672,
+            "message": "[PreBuild] Successfully built b084c6c3aaa6\n",
+            "ingestionTime": 1771676350879
+        },
+        {
+            "timestamp": 1771676350813,
+            "message": " ",
+            "ingestionTime": 1771676350856
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] Sending build context to Docker daemon  346.1kB\r\r\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] Step 1/6 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35 AS pre-build-stage\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]  ---> 2e99f2654c4d\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] Step 2/6 : COPY . /app\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]  ---> Using cache\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]  ---> ff2a6a3d3813\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] Step 3/6 : WORKDIR /app//\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]  ---> Using cache\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]  ---> b084c6c3aaa6\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] Step 4/6 : FROM pre-build-stage as build-stage\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]  ---> b084c6c3aaa6\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] Step 5/6 : WORKDIR /app//\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]  ---> Running in ef045cf52046\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] Removing intermediate container ef045cf52046\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]  ---> 6baba8f283e4\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] Step 6/6 : RUN cd /app && npm run build && npm run install-backend\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]  ---> Running in 46cf6ad770cf\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] > taskgenius-monolith@1.0.0 build\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] > cd frontend && npm install && npm run build\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] added 200 packages, and audited 201 packages in 5s\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] 46 packages are looking for funding\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]   run `npm fund` for details\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] 5 vulnerabilities (1 moderate, 4 high)\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] To address issues that do not require attention, run:\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]   npm audit fix\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] To address all issues (including breaking changes), run:\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build]   npm audit fix --force\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] Run `npm audit` for details.\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] > frontend@0.0.0 build\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] > vite build\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] vite v7.3.1 building client environment for production...\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": "[Build] transforming...\n",
+            "ingestionTime": 1771676364042
+        },
+        {
+            "timestamp": 1771676363562,
+            "message": 

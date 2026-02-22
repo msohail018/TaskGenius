@@ -1,32 +1,30 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+const path = require('path');
+const fs = require('fs');
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const Task = require('./models/Task');
-const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-// Start server immediately to pass AWS health checks
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 TaskGenius Backend listening on 0.0.0.0:${PORT}`);
-});
+console.log(`🚀 Starting TaskGenius... [${IS_PROD ? 'PRODUCTION' : 'DEVELOPMENT'}] on port ${PORT}`);
+if (!process.env.MONGODB_URI) console.warn('⚠️  MONGODB_URI is not set!');
+if (!process.env.OPENROUTER_API_KEY) console.warn('⚠️  OPENROUTER_API_KEY is not set!');
 
-console.log("🚀 Starting TaskGenius Backend...");
-console.log("📡 Mode:", process.env.NODE_ENV || 'development');
-if (!process.env.MONGODB_URI) console.warn("⚠️ MONGODB_URI is missing!");
-if (!process.env.OPENROUTER_API_KEY) console.warn("⚠️ OPENROUTER_API_KEY is missing!");
-
+// Health check — must be FIRST, so AWS App Runner passes health checks immediately
+app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // ── Security: Body size limit (prevents large payload attacks) ──
 app.use(express.json({ limit: '10kb' }));
 
-// Middleware
+// CORS — wildcard in production (monolith serves its own frontend), restricted locally
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
-    credentials: true
+    origin: IS_PROD ? '*' : (process.env.FRONTEND_URL || 'http://localhost:5173'),
+    credentials: !IS_PROD
 }));
 
 // ── Security: Rate Limiting ──
@@ -78,7 +76,7 @@ const openrouter = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
     apiKey: process.env.OPENROUTER_API_KEY,
     defaultHeaders: {
-        "X-Title": "TaskGenius V2"
+        "X-Title": "TaskGenius"
     }
 });
 
@@ -242,7 +240,7 @@ app.post('/api/tasks', async (req, res) => {
                 description: manualData.description?.substring(0, 1000) || '',
                 priority: manualData.priority || 'Medium',
                 dueDate: manualData.dueDate,
-
+                energyLevel: 'Admin',
                 category: 'Upcoming',
                 status: 'todo',
                 subTasks: []
@@ -286,6 +284,7 @@ Return ONLY this JSON object. No markdown. No backticks. No extra text:
   "title": "short task title",
   "description": "brief details",
   "priority": "High",
+  "energyLevel": "Admin",
   "dueDate": "YYYY-MM-DD",
   "subTasks": ["step 1", "step 2", "step 3"]
 }
@@ -310,7 +309,7 @@ Return ONLY this JSON object. No markdown. No backticks. No extra text:
                 title: analysis.title,
                 description: analysis.description,
                 priority: analysis.priority || 'Medium',
-
+                energyLevel: ['Deep Work', 'Admin'].includes(analysis.energyLevel) ? analysis.energyLevel : 'Admin',
                 category: 'Upcoming',
                 dueDate,
                 status: 'todo',
@@ -343,7 +342,7 @@ app.put('/api/tasks/:id', async (req, res) => {
             return res.status(400).json({ error: 'Invalid task ID format.' });
         }
         // Security: whitelist-only update — prevent mass-assignment / field injection
-        const allowedFields = ['title', 'description', 'status', 'priority', 'dueDate', 'subTasks', 'category'];
+        const allowedFields = ['title', 'description', 'status', 'priority', 'dueDate', 'energyLevel', 'subTasks', 'category'];
         const updateData = {};
         for (const field of allowedFields) {
             if (req.body[field] !== undefined) {
@@ -605,19 +604,30 @@ Write exactly 2 punchy sentences:
     }
 });
 
+// ── Serve Frontend (Production Monolith) ──
+const frontendDist = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist));
+    // SPA fallback — send index.html for all non-API routes
+    app.use((req, res, next) => {
+        if (req.path.startsWith('/api/')) return next();
+        res.sendFile(path.join(frontendDist, 'index.html'));
+    });
+    console.log('✅ Serving frontend from:', frontendDist);
+} else {
+    console.log('ℹ️  No frontend/dist found — API-only mode (run npm run build first)');
+}
 
+// 404 handler for unknown API routes
+app.use('/api/*', (req, res) => res.status(404).json({ error: 'API route not found.' }));
 
-// ── Serve Frontend Static Files (for Deployment) ──
-// When deployed, we serve the frontend/dist folder from the backend
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
-
-// Wildcard route to handle React Router (Single Page App)
-app.get('*', (req, res) => {
-    // If request is not for /api, serve the frontend
-    if (!req.url.startsWith('/api')) {
-        res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
-    }
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('💥 Unhandled error:', err.message);
+    res.status(500).json({ error: 'Internal server error.' });
 });
 
-
-
+// Bind to 0.0.0.0 (required for AWS App Runner / Docker)
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 TaskGenius backend listening on http://0.0.0.0:${PORT}`);
+});

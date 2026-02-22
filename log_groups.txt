@@ -1,0 +1,16 @@
+{
+    "logGroups": [
+        {
+            "logGroupName": "/aws/apprunner/TaskGenius-App/14aaeee2f26f4632a7e926fbe0443582/service",
+            "creationTime": 1771674607757,
+            "metricFilterCount": 0,
+            "arn": "arn:aws:logs:us-east-1:186067878422:log-group:/aws/apprunner/TaskGenius-App/14aaeee2f26f4632a7e926fbe0443582/service:*",
+            "storedBytes": 0,
+            "logGroupClass": "STANDARD",
+            "logGroupArn": "arn:aws:logs:us-east-1:186067878422:log-group:/aws/apprunner/TaskGenius-App/14aaeee2f26f4632a7e926fbe0443582/service",
+            "deletionProtectionEnabled": false
+        }
+    ]
+}
+
+STDERR:

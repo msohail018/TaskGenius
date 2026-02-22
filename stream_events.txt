@@ -1,0 +1,8 @@
+[AppRunner] Deployment with ID : c3841b66809244fe87cf8c3b53e09747 started. Triggering event : SERVICE_CREATE
+[AppRunner] Deployment Artifact: [Repo Type: Source], [Repository: https://github.com/msohail018/TaskGenius], [Branch: main], [SourceDirectory: /]
+[AppRunner] Pulling source code from GITHUB Repository ( https://github.com/msohail018/TaskGenius ).
+[AppRunner] Successfully pulled your application source code.
+[AppRunner] Successfully validate configuration file.
+[AppRunner] Starting source code build.
+[AppRunner] Failed to build your application source code. Reason: Failed to execute 'build' command.
+[AppRunner] Deployment with ID : c3841b66809244fe87cf8c3b53e09747 failed.

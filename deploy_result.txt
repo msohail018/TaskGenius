@@ -1,0 +1,25 @@
+﻿aws.cmd : 
+At line:1 char:1
++ & "C:\Users\mohd sohail al
+i\AppData\Roaming\Python\Pyt
+hon39\Scripts\a ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (:Stri  
+  ng) [], RemoteException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+An error occurred 
+(InvalidRequestException) 
+when calling the 
+CreateService operation: 
+Account 186067878422 is 
+restricted and can support 
+only two App Runner 
+services per region at the 
+moment. To remove the 
+restriction, contact the 
+AWS support team.

@@ -1,0 +1,42 @@
+{
+    "ServiceName": "TaskGenius-App",
+    "SourceConfiguration": {
+        "AutoDeploymentsEnabled": false,
+        "CodeRepository": {
+            "RepositoryUrl": "https://github.com/msohail018/TaskGenius",
+            "SourceCodeVersion": {
+                "Type": "BRANCH",
+                "Value": "main"
+            },
+            "SourceDirectory": "/",
+            "CodeConfiguration": {
+                "ConfigurationSource": "API",
+                "CodeConfigurationValues": {
+                    "Runtime": "NODEJS_22",
+                    "BuildCommand": "export NODE_OPTIONS=--max-old-space-size=1536 && npm run build && npm run install-backend",
+                    "StartCommand": "node backend/index.js",
+                    "Port": "5000",
+                    "RuntimeEnvironmentVariables": {
+                        "MONGODB_URI": "mongodb+srv://msohailali019_db_user:KjUFZAow4NadatL1@cluster0.slwh94p.mongodb.net/taskgenius?appName=Cluster0",
+                        "OPENROUTER_API_KEY": "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",
+                        "NODE_ENV": "production"
+                    }
+                }
+            }
+        },
+        "AuthenticationConfiguration": {
+            "ConnectionArn": "arn:aws:apprunner:us-east-1:186067878422:connection/TaskGenius-Connection/807a8053708d4f9e9a08d2af1be26163"
+        }
+    },
+    "InstanceConfiguration": {
+        "Cpu": "2 vCPU",
+        "Memory": "4 GB"
+    },
+    "HealthCheckConfiguration": {
+        "Protocol": "TCP",
+        "Interval": 10,
+        "Timeout": 5,
+        "HealthyThreshold": 1,
+        "UnhealthyThreshold": 5
+    }
+}

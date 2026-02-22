@@ -1,0 +1,24 @@
+{
+    "logStreams": [
+        {
+            "logStreamName": "deployment/c3841b66809244fe87cf8c3b53e09747",
+            "creationTime": 1771675532231,
+            "firstEventTimestamp": 1771675531829,
+            "lastEventTimestamp": 1771675531829,
+            "lastIngestionTime": 1771675532239,
+            "uploadSequenceToken": "49039859662669160366687191842416843519424901470435476218",
+            "arn": "arn:aws:logs:us-east-1:186067878422:log-group:/aws/apprunner/TaskGenius-App/97e755304f684b9b90af630312ab18bb/service:log-stream:deployment/c3841b66809244fe87cf8c3b53e09747",
+            "storedBytes": 0
+        },
+        {
+            "logStreamName": "events",
+            "creationTime": 1771675532609,
+            "firstEventTimestamp": 1771675532009,
+            "lastEventTimestamp": 1771675532130,
+            "lastIngestionTime": 1771675532617,
+            "uploadSequenceToken": "49039859662669160869135374249115044459136919399325565566",
+            "arn": "arn:aws:logs:us-east-1:186067878422:log-group:/aws/apprunner/TaskGenius-App/97e755304f684b9b90af630312ab18bb/service:log-stream:events",
+            "storedBytes": 0
+        }
+    ]
+}

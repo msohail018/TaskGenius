@@ -1,0 +1,1 @@
+arn:aws:apprunner:us-east-1:186067878422:service/TaskGenius-App/9deddfde171b45d4a169b5caaebdefb8

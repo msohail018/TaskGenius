@@ -1,0 +1,46 @@
+{
+    "events": [
+        {
+            "timestamp": 1771676208661,
+            "message": "[AppRunner] Deployment with ID : 539a7e706f6a431fa7081314de50217c started. Triggering event : SERVICE_CREATE",
+            "ingestionTime": 1771676209234
+        },
+        {
+            "timestamp": 1771676208783,
+            "message": "[AppRunner] Deployment Artifact: [Repo Type: Source], [Repository: https://github.com/msohail018/TaskGenius], [Branch: main], [SourceDirectory: /]",
+            "ingestionTime": 1771676209255
+        },
+        {
+            "timestamp": 1771676269563,
+            "message": "[AppRunner] Pulling source code from GITHUB Repository ( https://github.com/msohail018/TaskGenius ).",
+            "ingestionTime": 1771676269992
+        },
+        {
+            "timestamp": 1771676272082,
+            "message": "[AppRunner] Successfully pulled your application source code.",
+            "ingestionTime": 1771676273181
+        },
+        {
+            "timestamp": 1771676272571,
+            "message": "[AppRunner] Successfully validate configuration file.",
+            "ingestionTime": 1771676273193
+        },
+        {
+            "timestamp": 1771676273251,
+            "message": "[AppRunner] Starting source code build.",
+            "ingestionTime": 1771676273498
+        },
+        {
+            "timestamp": 1771676367428,
+            "message": "[AppRunner] Failed to build your application source code. Reason: Failed to execute 'build' command.",
+            "ingestionTime": 1771676367834
+        },
+        {
+            "timestamp": 1771676369970,
+            "message": "[AppRunner] Deployment with ID : 539a7e706f6a431fa7081314de50217c failed.",
+            "ingestionTime": 1771676370236
+        }
+    ],
+    "nextForwardToken": "f/39509703300958641387419904188361905460414515627612110848/s",
+    "nextBackwardToken": "b/39509699703647734157643615655737509143241412335189491712/s"
+}

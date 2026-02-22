@@ -1,0 +1,125 @@
+[AppRunner] Starting to deploy your application source code.
+[AppRunner] Starting to build your application source code.
+[PreBuild] Sending build context to Docker daemon  346.1kB
+
+[PreBuild] Step 1/3 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35 AS pre-build-stage
+
+[PreBuild] uuid-nodejs22-20251118-203652-35: Pulling from awsfusionruntime-nodejs22-build
+
+[PreBuild] 1c7de4eb5ced: Pulling fs layer
+
+[PreBuild] 3651f8cffd51: Pulling fs layer
+
+[PreBuild] 0f2554558521: Pulling fs layer
+
+[PreBuild] 0f2554558521: Verifying Checksum
+
+[PreBuild] 0f2554558521: Download complete
+
+[PreBuild] 1c7de4eb5ced: Verifying Checksum
+
+[PreBuild] 1c7de4eb5ced: Download complete
+
+[PreBuild] 3651f8cffd51: Verifying Checksum
+
+[PreBuild] 3651f8cffd51: Download complete
+
+[PreBuild] 1c7de4eb5ced: Pull complete
+
+[PreBuild] 3651f8cffd51: Pull complete
+
+[PreBuild] 0f2554558521: Pull complete
+
+[PreBuild] Digest: sha256:004c3e6b4126ffa0762d042a41f7c3a819629fd0bc97d0b68cf4b50240e53c2e
+
+[PreBuild] Status: Downloaded newer image for 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35
+
+[PreBuild]  ---> 2e99f2654c4d
+
+[PreBuild] Step 2/3 : COPY . /app
+
+[PreBuild]  ---> 183ef0c88a01
+
+[PreBuild] Step 3/3 : WORKDIR /app//backend
+
+[PreBuild]  ---> Running in 723324ed15c9
+
+[PreBuild] Removing intermediate container 723324ed15c9
+
+[PreBuild]  ---> 49c4c1b9d286
+
+[PreBuild] Successfully built 49c4c1b9d286
+
+ 
+[Build] Sending build context to Docker daemon  346.1kB
+
+[Build] Step 1/6 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35 AS pre-build-stage
+
+[Build]  ---> 2e99f2654c4d
+
+[Build] Step 2/6 : COPY . /app
+
+[Build]  ---> Using cache
+
+[Build]  ---> 183ef0c88a01
+
+[Build] Step 3/6 : WORKDIR /app//backend
+
+[Build]  ---> Using cache
+
+[Build]  ---> 49c4c1b9d286
+
+[Build] Step 4/6 : FROM pre-build-stage as build-stage
+
+[Build]  ---> 49c4c1b9d286
+
+[Build] Step 5/6 : WORKDIR /app//backend
+
+[Build]  ---> Running in 695dfe5197b0
+
+[Build] Removing intermediate container 695dfe5197b0
+
+[Build]  ---> b83e1ea327f3
+
+[Build] Step 6/6 : RUN npm install && npm run install:all && npm run build:frontend
+
+[Build]  ---> Running in 0cff0ea3f958
+
+[Build] added 89 packages, and audited 90 packages in 2s
+
+[Build] 26 packages are looking for funding
+
+[Build]   run `npm fund` for details
+
+[Build] found 0 vulnerabilities
+
+[Build] [91mnpm notice
+
+[Build] npm notice New major version of npm available! 10.9.4 -> 11.10.1
+
+[Build] npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.10.1
+
+[Build] npm notice To update run: npm install -g npm@11.10.1
+
+[Build] npm notice
+
+[Build] [0m[91mnpm error Missing script: "install:all"
+
+[Build] npm error
+
+[Build] npm error Did you mean this?
+
+[Build] npm error   npm install # Install a package
+
+[Build] npm error
+
+[Build] npm error To see a list of scripts, run:
+
+[Build] npm error   npm run
+
+[Build] [0m[91mnpm error A complete log of this run can be found in: /root/.npm/_logs/2026-02-21T10_51_42_924Z-debug-0.log
+
+[Build] [0mThe command '/bin/sh -c npm install && npm run install:all && npm run build:frontend' returned a non-zero code: 1
+
+[AppRunner] Failed to build your application source code. Reason: Failed to execute 'build' command.
+[AppRunner] Failed to deploy your application source code.

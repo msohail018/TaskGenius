@@ -1,0 +1,117 @@
+[AppRunner] Starting to deploy your application source code.
+[AppRunner] Starting to build your application source code.
+[PreBuild] Sending build context to Docker daemon  346.1kB\r\r
+
+[PreBuild] Step 1/3 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35 AS pre-build-stage
+
+[PreBuild] uuid-nodejs22-20251118-203652-35: Pulling from awsfusionruntime-nodejs22-build
+
+[PreBuild] 1c7de4eb5ced: Pulling fs layer
+
+[PreBuild] 3651f8cffd51: Pulling fs layer
+
+[PreBuild] 0f2554558521: Pulling fs layer
+
+[PreBuild] 0f2554558521: Verifying Checksum
+
+[PreBuild] 0f2554558521: Download complete
+
+[PreBuild] 1c7de4eb5ced: Verifying Checksum
+
+[PreBuild] 1c7de4eb5ced: Download complete
+
+[PreBuild] 3651f8cffd51: Verifying Checksum
+
+[PreBuild] 3651f8cffd51: Download complete
+
+[PreBuild] 1c7de4eb5ced: Pull complete
+
+[PreBuild] 3651f8cffd51: Pull complete
+
+[PreBuild] 0f2554558521: Pull complete
+
+[PreBuild] Digest: sha256:004c3e6b4126ffa0762d042a41f7c3a819629fd0bc97d0b68cf4b50240e53c2e
+
+[PreBuild] Status: Downloaded newer image for 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35
+
+[PreBuild]  ---> 2e99f2654c4d
+
+[PreBuild] Step 2/3 : COPY . /app
+
+[PreBuild]  ---> ff2a6a3d3813
+
+[PreBuild] Step 3/3 : WORKDIR /app//
+
+[PreBuild]  ---> Running in 7e8cba3fc0c2
+
+[PreBuild] Removing intermediate container 7e8cba3fc0c2
+
+[PreBuild]  ---> b084c6c3aaa6
+
+[PreBuild] Successfully built b084c6c3aaa6
+
+ 
+[Build] Sending build context to Docker daemon  346.1kB\r\r
+
+[Build] Step 1/6 : FROM 082388193175.dkr.ecr.us-east-1.amazonaws.com/awsfusionruntime-nodejs22-build:uuid-nodejs22-20251118-203652-35 AS pre-build-stage
+
+[Build]  ---> 2e99f2654c4d
+
+[Build] Step 2/6 : COPY . /app
+
+[Build]  ---> Using cache
+
+[Build]  ---> ff2a6a3d3813
+
+[Build] Step 3/6 : WORKDIR /app//
+
+[Build]  ---> Using cache
+
+[Build]  ---> b084c6c3aaa6
+
+[Build] Step 4/6 : FROM pre-build-stage as build-stage
+
+[Build]  ---> b084c6c3aaa6
+
+[Build] Step 5/6 : WORKDIR /app//
+
+[Build]  ---> Running in ef045cf52046
+
+[Build] Removing intermediate container ef045cf52046
+
+[Build]  ---> 6baba8f283e4
+
+[Build] Step 6/6 : RUN cd /app && npm run build && npm run install-backend
+
+[Build]  ---> Running in 46cf6ad770cf
+
+[Build] > taskgenius-monolith@1.0.0 build
+
+[Build] > cd frontend && npm install && npm run build
+
+[Build] added 200 packages, and audited 201 packages in 5s
+
+[Build] 46 packages are looking for funding
+
+[Build]   run `npm fund` for details
+
+[Build] 5 vulnerabilities (1 moderate, 4 high)
+
+[Build] To address issues that do not require attention, run:
+
+[Build]   npm audit fix
+
+[Build] To address all issues (including breaking changes), run:
+
+[Build]   npm audit fix --force
+
+[Build] Run `npm audit` for details.
+
+[Build] > frontend@0.0.0 build
+
+[Build] > vite build
+
+[Build] vite v7.3.1 building client environment for production...
+
+[Build] transforming...
+

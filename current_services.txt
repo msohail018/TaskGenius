@@ -1,0 +1,13 @@
+{
+  "ServiceSummaryList": [
+    {
+      "ServiceName": "whatsapp-react-clone-v2",
+      "ServiceId": "1fd8e79e4f7f456e982ce28e995f2fc1",
+      "ServiceArn": "arn:aws:apprunner:us-east-1:186067878422:service/whatsapp-react-clone-v2/1fd8e79e4f7f456e982ce28e995f2fc1",
+      "ServiceUrl": "tpdmwh2met.us-east-1.awsapprunner.com",
+      "CreatedAt": 1770251270.0,
+      "UpdatedAt": 1770251270.0,
+      "Status": "RUNNING"
+    }
+  ]
+}

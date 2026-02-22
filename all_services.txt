@@ -1,0 +1,22 @@
+{
+    "ServiceSummaryList": [
+        {
+            "ServiceName": "TaskGenius-App",
+            "ServiceId": "ecb1d5648b4d451ea602f88d1b752520",
+            "ServiceArn": "arn:aws:apprunner:us-east-1:186067878422:service/TaskGenius-App/ecb1d5648b4d451ea602f88d1b752520",
+            "ServiceUrl": "8nymmjr5yg.us-east-1.awsapprunner.com",
+            "CreatedAt": 1771677139.0,
+            "UpdatedAt": 1771677139.0,
+            "Status": "CREATE_FAILED"
+        },
+        {
+            "ServiceName": "whatsapp-react-clone-v2",
+            "ServiceId": "1fd8e79e4f7f456e982ce28e995f2fc1",
+            "ServiceArn": "arn:aws:apprunner:us-east-1:186067878422:service/whatsapp-react-clone-v2/1fd8e79e4f7f456e982ce28e995f2fc1",
+            "ServiceUrl": "tpdmwh2met.us-east-1.awsapprunner.com",
+            "CreatedAt": 1770251270.0,
+            "UpdatedAt": 1770251270.0,
+            "Status": "RUNNING"
+        }
+    ]
+}

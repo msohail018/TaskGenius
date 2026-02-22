@@ -1,0 +1,23 @@
+{
+    "ServiceArn": "arn:aws:apprunner:us-east-1:186067878422:service/TaskGenius-Final/8ae1487144e74f3c85cbbb096b58097d",
+    "SourceConfiguration": {
+        "CodeRepository": {
+            "RepositoryUrl": "https://github.com/msohail018/TaskGenius",
+            "SourceCodeVersion": {
+                "Type": "BRANCH",
+                "Value": "main"
+            },
+            "CodeConfiguration": {
+                "ConfigurationSource": "REPOSITORY",
+                "CodeConfigurationValues": {
+                    "Runtime": "NODEJS_18",
+                    "RuntimeEnvironmentVariables": {
+                        "MONGODB_URI": "mongodb+srv://msohailali019_db_user:KjUFZAow4NadatL1@cluster0.slwh94p.mongodb.net/taskgenius?appName=Cluster0",
+                        "OPENROUTER_API_KEY": "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",
+                        "NODE_ENV": "production"
+                    }
+                }
+            }
+        }
+    }
+}

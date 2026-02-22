@@ -1,0 +1,13 @@
+{
+    "OperationSummaryList": [
+        {
+            "Id": "f3eb68f6bbcf4ef8bf4e78ecd28ca2ac",
+            "Type": "CREATE_SERVICE",
+            "Status": "FAILED",
+            "TargetArn": "arn:aws:apprunner:us-east-1:186067878422:service/TaskGenius-App/14aaeee2f26f4632a7e926fbe0443582",
+            "StartedAt": 1771674605.0,
+            "EndedAt": 1771674788.0,
+            "UpdatedAt": 1771674788.0
+        }
+    ]
+}

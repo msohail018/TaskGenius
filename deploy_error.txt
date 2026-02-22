@@ -1,0 +1,40 @@
+﻿aws.cmd : 
+At line:1 char:1
++ & "C:\Users\mohd sohail al
+i\AppData\Roaming\Python\Pyt
+hon39\Scripts\a ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (:Stri  
+  ng) [], RemoteException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+Parameter validation failed:
+Invalid type for parameter S
+ourceConfiguration.CodeRepos
+itory.CodeConfiguration.Code
+ConfigurationValues.RuntimeE
+nvironmentVariables, value: 
+[{'Name': 'MONGODB_URI', 
+'Value': 'mongodb+srv://msoh
+ailali019_db_user:KjUFZAow4N
+adatL1@cluster0.slwh94p.mong
+odb.net/taskgenius?appName=C
+luster0'}, {'Name': 
+'OPENROUTER_API_KEY', 
+'Value': 'sk-or-v1-6dd6cc400
+95cb239382f0c32e6f5d1b7c69e9
+684422360350877b658f24061de'
+}, {'Name': 'NODE_ENV', 
+'Value': 'production'}], 
+type: <class 'list'>, valid 
+types: <class 'dict'>
+Unknown parameter in 
+HealthCheckConfiguration: 
+"Port", must be one of: 
+Protocol, Path, Interval, 
+Timeout, HealthyThreshold, 
+UnhealthyThreshold

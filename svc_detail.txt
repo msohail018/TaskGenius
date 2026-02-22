@@ -1,0 +1,10 @@
+NAME=TaskGenius-Final
+ARN=arn:aws:apprunner:us-east-1:186067878422:service/TaskGenius-Final/8ae1487144e74f3c85cbbb096b5807dd
+STATUS=CREATE_FAILED
+URL=p2bb8ic3ua.us-east-1.awsapprunner.com
+---
+NAME=whatsapp-react-clone-v2
+ARN=arn:aws:apprunner:us-east-1:186067878422:service/whatsapp-react-clone-v2/1fd8e79e4f7f456e982ce28e995f2fc1
+STATUS=RUNNING
+URL=tpdmwh2met.us-east-1.awsapprunner.com
+---

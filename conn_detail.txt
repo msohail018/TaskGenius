@@ -1,0 +1,18 @@
+{
+  "ConnectionSummaryList": [
+    {
+      "ConnectionName": "whatsapp-connection",
+      "ConnectionArn": "arn:aws:apprunner:us-east-1:186067878422:connection/whatsapp-connection/de4ebf28386c4aa981b334589be4f8f6",
+      "ProviderType": "GITHUB",
+      "Status": "AVAILABLE",
+      "CreatedAt": 1770249465.0
+    },
+    {
+      "ConnectionName": "TaskGenius-Connection",
+      "ConnectionArn": "arn:aws:apprunner:us-east-1:186067878422:connection/TaskGenius-Connection/807a8053708d4f9e9a08d2af1be26163",
+      "ProviderType": "GITHUB",
+      "Status": "AVAILABLE",
+      "CreatedAt": 1771665658.0
+    }
+  ]
+}

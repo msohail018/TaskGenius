@@ -1,0 +1,67 @@
+{
+    "Service": {
+        "ServiceName": "TaskGenius-App",
+        "ServiceId": "14aaeee2f26f4632a7e926fbe0443582",
+        "ServiceArn": "arn:aws:apprunner:us-east-1:186067878422:service/TaskGenius-App/14aaeee2f26f4632a7e926fbe0443582",
+        "ServiceUrl": "biir2spjhh.us-east-1.awsapprunner.com",
+        "CreatedAt": 1771674605.0,
+        "UpdatedAt": 1771674605.0,
+        "Status": "CREATE_FAILED",
+        "SourceConfiguration": {
+            "CodeRepository": {
+                "RepositoryUrl": "https://github.com/msohail018/TaskGenius",
+                "SourceCodeVersion": {
+                    "Type": "BRANCH",
+                    "Value": "main"
+                },
+                "CodeConfiguration": {
+                    "ConfigurationSource": "API",
+                    "CodeConfigurationValues": {
+                        "Runtime": "NODEJS_22",
+                        "BuildCommand": "npm run build && npm run install-backend",
+                        "StartCommand": "cd backend && node index.js",
+                        "Port": "5000",
+                        "RuntimeEnvironmentVariables": {
+                            "MONGODB_URI": "mongodb+srv://msohailali019_db_user:KjUFZAow4NadatL1@cluster0.slwh94p.mongodb.net/taskgenius?appName=Cluster0",
+                            "NODE_ENV": "production",
+                            "OPENROUTER_API_KEY": "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"
+                        }
+                    }
+                },
+                "SourceDirectory": "/"
+            },
+            "AutoDeploymentsEnabled": true,
+            "AuthenticationConfiguration": {
+                "ConnectionArn": "arn:aws:apprunner:us-east-1:186067878422:connection/whatsapp-connection/16656580d2af1be26163a981b334589be4f8f6ebf28386c4aa"
+            }
+        },
+        "InstanceConfiguration": {
+            "Cpu": "1024",
+            "Memory": "2048"
+        },
+        "HealthCheckConfiguration": {
+            "Protocol": "TCP",
+            "Path": "/",
+            "Interval": 10,
+            "Timeout": 5,
+            "HealthyThreshold": 1,
+            "UnhealthyThreshold": 5
+        },
+        "AutoScalingConfigurationSummary": {
+            "AutoScalingConfigurationArn": "arn:aws:apprunner:us-east-1:186067878422:autoscalingconfiguration/DefaultConfiguration/1/00000000000000000000000000000001",
+            "AutoScalingConfigurationName": "DefaultConfiguration",
+            "AutoScalingConfigurationRevision": 1
+        },
+        "NetworkConfiguration": {
+            "EgressConfiguration": {
+                "EgressType": "DEFAULT"
+            },
+            "IngressConfiguration": {
+                "IsPubliclyAccessible": true
+            },
+            "IpAddressType": "IPV4"
+        }
+    }
+}
+
+STDERR:

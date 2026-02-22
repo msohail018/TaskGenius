@@ -1,9 +1,10 @@
 {
     "name": "taskgenius-monolith",
     "version": "1.0.0",
+    "description": "TaskGenius - AI-powered task manager",
     "scripts": {
-        "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
-        "build": "cd frontend && npm install && npm run build",
+        "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ..",
+        "build": "cd frontend && npm run build && cd ..",
         "start": "cd backend && node index.js"
     }
 }
